@@ -114,11 +114,11 @@ public class PdgService {
 
         final File file = MainTest.getFiles(f).get(0);
 
-        final List<MethodInfo> methods = new ArrayList<MethodInfo>();
         final CompilationUnit unit = ASTVisitor.createAST(file);
         final List<MethodInfo> m = new ArrayList<MethodInfo>();
-        final ASTVisitor visitor = new ASTVisitor(
-                file.getAbsolutePath(), unit, methods);
+        final ASTVisitor visitor = new ASTVisitor(unit);
+        final List<MethodInfo> methods = visitor.getMethods();
+
         unit.accept(visitor);
         methods.addAll(m);
 

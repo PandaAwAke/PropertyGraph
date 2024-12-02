@@ -1,28 +1,35 @@
+/*
+ * Copyright 2024 Ma Yingshuo
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.propertygraph.pe;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
+
+import java.util.*;
 
 public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
-	final public String path;
 	final public String name;
 	final private List<VariableInfo> parameters;
 	final private List<StatementInfo> statements;
 
-	public MethodInfo(final String path, final String name,
-			final int startLine, final int endLine) {
-
-		super(startLine, endLine);
-
-		this.path = path;
+	public MethodInfo(final String name, final MethodDeclaration node, final int startLine, final int endLine) {
+		super(node, startLine, endLine);
 		this.name = name;
-		this.parameters = new ArrayList<VariableInfo>();
-		this.statements = new ArrayList<StatementInfo>();
+		this.parameters = new ArrayList<>();
+		this.statements = new ArrayList<>();
 	}
 
 	public void addParameter(final VariableInfo parameter) {
@@ -31,9 +38,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	public SortedSet<VariableInfo> getParameters() {
-		final SortedSet<VariableInfo> parameters = new TreeSet<VariableInfo>();
-		parameters.addAll(this.parameters);
-		return parameters;
+        return new TreeSet<>(this.parameters);
 	}
 
 	@Override
@@ -66,7 +71,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public SortedSet<String> getAssignedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getAssignedVariables());
 		}
@@ -75,7 +80,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<String>();
+		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getReferencedVariables());
 		}

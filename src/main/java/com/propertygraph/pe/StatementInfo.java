@@ -1,308 +1,302 @@
+/*
+ * Copyright 2024 Ma Yingshuo
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.propertygraph.pe;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import lombok.Getter;
+import lombok.Setter;
+import org.eclipse.jdt.core.dom.ASTNode;
+
+import java.util.*;
 
 public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
-	private ProgramElementInfo ownerBlock;
-	private CATEGORY category;
-	private List<ProgramElementInfo> expressions;
+    @Getter
+    private ProgramElementInfo ownerBlock;
+    @Getter
+    private CATEGORY category;
 
-	//如果是变量的声明  则记录变量的类型 hj
-	private String Instance;
-	private boolean isArray;
+    private List<ProgramElementInfo> expressions;
 
-	final private List<ProgramElementInfo> initializers;
-	private ProgramElementInfo condition;
-	final private List<ProgramElementInfo> updaters;
+    //hj
+    //hj
+    //如果是变量的声明  则记录变量的类型 hj
+    @Setter
+    @Getter
+    private String Instance;
+    //hj
+    @Setter
+    private boolean isArray;
 
-	final private List<StatementInfo> statements;
-	private List<StatementInfo> elseStatements;
-	final private List<StatementInfo> catchStatements;
-	private StatementInfo finallyStatement;
+    final private List<ProgramElementInfo> initializers;
 
-	private String label;
+    @Getter
+    private ProgramElementInfo condition;
+    final private List<ProgramElementInfo> updaters;
 
-	public StatementInfo(final ProgramElementInfo ownerBlock,
-			final CATEGORY category, final int startLine, final int endLine) {
+    final private List<StatementInfo> statements;
+    final private List<StatementInfo> elseStatements;
+    final private List<StatementInfo> catchStatements;
 
-		super(startLine, endLine);
+    @Getter
+    private StatementInfo finallyStatement;
 
-		this.ownerBlock = ownerBlock;
-		this.category = category;
-		this.expressions = new ArrayList<ProgramElementInfo>();
+    @Setter
+    @Getter
+    private String label;
 
-		//hj
-		this.Instance = null;
-		this.isArray = false;
+    public StatementInfo(final ProgramElementInfo ownerBlock,
+                         final CATEGORY category,
+                         final ASTNode node,
+                         final int startLine,
+                         final int endLine) {
+        super(node, startLine, endLine);
 
-		this.initializers = new ArrayList<ProgramElementInfo>();
-		this.condition = null;
-		this.updaters = new ArrayList<ProgramElementInfo>();
+        this.ownerBlock = ownerBlock;
+        this.category = category;
+        this.expressions = new ArrayList<>();
 
-		this.statements = new ArrayList<StatementInfo>();
-		this.elseStatements = new ArrayList<StatementInfo>();
-		this.catchStatements = new ArrayList<StatementInfo>();
-		this.finallyStatement = null;
+        //hj
+        this.Instance = null;
+        this.isArray = false;
 
-		this.label = null;
-	}
+        this.initializers = new ArrayList<>();
+        this.condition = null;
+        this.updaters = new ArrayList<>();
 
-	public enum CATEGORY {
+        this.statements = new ArrayList<>();
+        this.elseStatements = new ArrayList<>();
+        this.catchStatements = new ArrayList<>();
+        this.finallyStatement = null;
 
-		Assert("ASSERT"), Break("BREAK"), Case("CASE"), Catch("CATCH"), Continue(
-				"CONTINUE"), Do("DO"), Empty("Empty"), Expression("EXPRESSION"), If(
-				"IF"), For("FOR"), Foreach("FOREACH"), Return("RETURN"), SimpleBlock(
-				"SimpleBlock"), Synchronized("SYNCHRONIZED"), Switch("SWITCH"), Throw(
-				"SWITCH"), Try("TRY"), TypeDeclaration("TYPEDECLARATION"), VariableDeclaration(
-				"VARIABLEDECLARATION"), While("WHILE");
+        this.label = null;
+    }
 
-		final public String id;
+    public enum CATEGORY {
+        Assert,
+        Break,
+        Case,
+        Catch,
+        Continue,
+        Do,
+        Empty,
+        Expression,
+        If,
+        For,
+        Foreach,
+        Return,
+        SimpleBlock,
+        Synchronized,
+        Switch,
+        Throw,
+        Try,
+        TypeDeclaration,
+        VariableDeclaration,
+        While,
+    }
 
-		CATEGORY(final String id) {
-			this.id = id;
-		}
-	}
+    public void setOwnerBlock(final ProgramElementInfo ownerBlock) {
+        assert null != ownerBlock : "\"ownerBlock\" is null.";
+        this.ownerBlock = ownerBlock;
+    }
 
-	public ProgramElementInfo getOwnerBlock() {
-		return this.ownerBlock;
-	}
+    //hj
+    public boolean getIsArray() {
+        return isArray;
+    }
 
-	public void setOwnerBlock(final ProgramElementInfo ownerBlock) {
-		assert null != "\"ownerBlock\" is null.";
-		this.ownerBlock = ownerBlock;
-	}
+    public void setCategory(final CATEGORY category) {
+        assert null != category : "\"category\" is null.";
+        this.category = category;
+    }
 
-	//hj
-	public String getInstance(){
-		return Instance;
-	}
-	//hj
-	public void setInstance(String instance){
-		this.Instance = instance;
-	}
-	//hj
-	public boolean getIsArray(){
-		return isArray;
-	}
-	//hj
-	public void setIsArray(boolean isArray1){
-		this.isArray = isArray1;
-	}
+    public void addInitializer(final ProgramElementInfo initializer) {
+        assert null != initializer : "\"initializer\" is null.";
+        this.initializers.add(initializer);
+    }
 
-	public CATEGORY getCategory() {
-		return this.category;
-	}
+    public void setCondition(final ProgramElementInfo condition) {
+        assert null != condition : "\"condition\" is null.";
+        this.condition = condition;
+    }
 
-	public void setCategory(final CATEGORY category) {
-		assert null != "\"category\" is null.";
-		this.category = category;
-	}
+    public void addUpdater(final ProgramElementInfo updater) {
+        assert null != updater : "\"updater\" is null.";
+        this.updaters.add(updater);
+    }
 
-	public void addInitializer(final ProgramElementInfo initializer) {
-		assert null != initializer : "\"initializer\" is null.";
-		this.initializers.add(initializer);
-	}
+    public List<ProgramElementInfo> getInitializers() {
+        return new ArrayList<>(this.initializers);
+    }
 
-	public void setCondition(final ProgramElementInfo condition) {
-		assert null != condition : "\"condition\" is null.";
-		this.condition = condition;
-	}
+    public List<ProgramElementInfo> getUpdaters() {
+        return new ArrayList<>(this.updaters);
+    }
 
-	public void addUpdater(final ProgramElementInfo updater) {
-		assert null != updater : "\"updater\" is null.";
-		this.updaters.add(updater);
-	}
+    @Override
+    public void setStatement(final StatementInfo statement) {
+        assert null != statement : "\"statement\" is null.";
+        this.statements.clear();
+        if (CATEGORY.SimpleBlock == statement.getCategory()) {
+            if (statement.getStatements().isEmpty()) {
+                this.statements.add(statement);
+            } else {
+                this.statements.addAll(statement.getStatements());
+            }
+        } else {
+            this.statements.add(statement);
+        }
+    }
 
-	public List<ProgramElementInfo> getInitializers() {
-		final List<ProgramElementInfo> initializers = new ArrayList<ProgramElementInfo>();
-		initializers.addAll(this.initializers);
-		return initializers;
-	}
+    @Override
+    public void addStatement(final StatementInfo statement) {
+        assert null != statement : "\"statement\" is null.";
+        this.statements.add(statement);
+    }
 
-	public ProgramElementInfo getCondition() {
-		return this.condition;
-	}
+    @Override
+    public void addStatements(final Collection<StatementInfo> statements) {
+        assert null != statements : "\"statements\" is null.";
+        this.statements.addAll(statements);
+    }
 
-	public List<ProgramElementInfo> getUpdaters() {
-		final List<ProgramElementInfo> updaters = new ArrayList<ProgramElementInfo>();
-		updaters.addAll(this.updaters);
-		return updaters;
-	}
+    @Override
+    public List<StatementInfo> getStatements() {
+        return Collections.unmodifiableList(this.statements);
+    }
 
-	@Override
-	public void setStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
-		this.statements.clear();
-		if (StatementInfo.CATEGORY.SimpleBlock == statement.getCategory()) {
-			if (statement.getStatements().isEmpty()) {
-				this.statements.add(statement);
-			} else {
-				this.statements.addAll(statement.getStatements());
-			}
-		} else {
-			this.statements.add(statement);
-		}
-	}
+    public void setElseStatement(final StatementInfo elseBody) {
+        assert null != elseBody : "\"elseStatement\" is null.";
+        this.elseStatements.clear();
+        if (CATEGORY.SimpleBlock == elseBody.getCategory()) {
+            this.elseStatements.addAll(elseBody.getStatements());
+        } else {
+            this.elseStatements.add(elseBody);
+        }
+    }
 
-	@Override
-	public void addStatement(final StatementInfo statement) {
-		assert null != statement : "\"statement\" is null.";
-		this.statements.add(statement);
-	}
+    public List<StatementInfo> getElseStatements() {
+        return Collections.unmodifiableList(this.elseStatements);
+    }
 
-	@Override
-	public void addStatements(final Collection<StatementInfo> statements) {
-		assert null != statements : "\"statements\" is null.";
-		this.statements.addAll(statements);
-	}
+    public void addCatchStatement(final StatementInfo catchStatement) {
+        assert null != catchStatement : "\"catchStatement\" is null.";
+        this.catchStatements.add(catchStatement);
+    }
 
-	@Override
-	public List<StatementInfo> getStatements() {
-		return Collections.unmodifiableList(this.statements);
-	}
+    public List<StatementInfo> getCatchStatements() {
+        return Collections.unmodifiableList(this.catchStatements);
+    }
 
-	public void setElseStatement(final StatementInfo elseBody) {
-		assert null != elseBody : "\"elseStatement\" is null.";
-		this.elseStatements.clear();
-		if (StatementInfo.CATEGORY.SimpleBlock == elseBody.getCategory()) {
-			this.elseStatements.addAll(elseBody.getStatements());
-		} else {
-			this.elseStatements.add(elseBody);
-		}
-	}
+    public void setFinallyStatement(final StatementInfo finallyStatement) {
+        assert null != finallyStatement : "\"finallyStatement\" is null.";
+        this.finallyStatement = finallyStatement;
+    }
 
-	public List<StatementInfo> getElseStatements() {
-		return Collections.unmodifiableList(this.elseStatements);
-	}
+    public void addExpression(final ProgramElementInfo element) {
+        assert null != element : "\"element\" is null.";
+        this.expressions.add(element);
+    }
 
-	public void addCatchStatement(final StatementInfo catchStatement) {
-		assert null != catchStatement : "\"catchStatement\" is null.";
-		this.catchStatements.add(catchStatement);
-	}
+    public List<ProgramElementInfo> getExpressions() {
+        return new ArrayList<>(this.expressions);
+    }
 
-	public List<StatementInfo> getCatchStatements() {
-		return Collections.unmodifiableList(this.catchStatements);
-	}
+    @Override
+    public SortedSet<String> getAssignedVariables() {
+        final SortedSet<String> variables = new TreeSet<String>();
 
-	public void setFinallyStatement(final StatementInfo finallyStatement) {
-		assert null != finallyStatement : "\"finallyStatement\" is null.";
-		this.finallyStatement = finallyStatement;
-	}
+        for (final ProgramElementInfo expression : this.expressions) {
+            variables.addAll(expression.getAssignedVariables());
+        }
 
-	public StatementInfo getFinallyStatement() {
-		return this.finallyStatement;
-	}
+        for (final ProgramElementInfo initializer : this.initializers) {
+            variables.addAll(initializer.getAssignedVariables());
+        }
 
-	public void addExpression(final ProgramElementInfo element) {
-		assert null != element : "\"element\" is null.";
-		this.expressions.add(element);
-	}
+        if (null != this.condition) {
+            variables.addAll(this.condition.getAssignedVariables());
+        }
 
-	public List<ProgramElementInfo> getExpressions() {
-		final List<ProgramElementInfo> list = new ArrayList<ProgramElementInfo>();
-		list.addAll(this.expressions);
-		return list;
-	}
+        for (final ProgramElementInfo updater : this.updaters) {
+            variables.addAll(updater.getAssignedVariables());
+        }
 
-	@Override
-	public SortedSet<String> getAssignedVariables() {
+        for (final StatementInfo statement : this.statements) {
+            variables.addAll(statement.getAssignedVariables());
+        }
 
-		final SortedSet<String> variables = new TreeSet<String>();
+        for (final StatementInfo statement : this.elseStatements) {
+            variables.addAll(statement.getAssignedVariables());
+        }
 
-		for (final ProgramElementInfo expression : this.expressions) {
-			variables.addAll(expression.getAssignedVariables());
-		}
+        for (final StatementInfo catchStatement : this.catchStatements) {
+            variables.addAll(catchStatement.getAssignedVariables());
+        }
 
-		for (final ProgramElementInfo initializer : this.initializers) {
-			variables.addAll(initializer.getAssignedVariables());
-		}
+        if (null != this.finallyStatement) {
+            variables.addAll(this.finallyStatement.getAssignedVariables());
+        }
 
-		if (null != this.condition) {
-			variables.addAll(this.condition.getAssignedVariables());
-		}
+        return variables;
+    }
 
-		for (final ProgramElementInfo updater : this.updaters) {
-			variables.addAll(updater.getAssignedVariables());
-		}
+    @Override
+    public SortedSet<String> getReferencedVariables() {
+        final SortedSet<String> variables = new TreeSet<>();
 
-		for (final StatementInfo statement : this.statements) {
-			variables.addAll(statement.getAssignedVariables());
-		}
+        for (final ProgramElementInfo expression : this.expressions) {
+            variables.addAll(expression.getReferencedVariables());
+        }
 
-		for (final StatementInfo statement : this.elseStatements) {
-			variables.addAll(statement.getAssignedVariables());
-		}
+        for (final ProgramElementInfo initializer : this.initializers) {
+            variables.addAll(initializer.getReferencedVariables());
+        }
 
-		for (final StatementInfo catchStatement : this.catchStatements) {
-			variables.addAll(catchStatement.getAssignedVariables());
-		}
+        if (null != this.condition) {
+            variables.addAll(this.condition.getReferencedVariables());
+        }
 
-		if (null != this.finallyStatement) {
-			variables.addAll(this.finallyStatement.getAssignedVariables());
-		}
+        for (final ProgramElementInfo updater : this.updaters) {
+            variables.addAll(updater.getReferencedVariables());
+        }
 
-		return variables;
-	}
+        for (final StatementInfo statement : this.statements) {
+            variables.addAll(statement.getReferencedVariables());
+        }
 
-	@Override
-	public SortedSet<String> getReferencedVariables() {
+        for (final StatementInfo statement : this.elseStatements) {
+            variables.addAll(statement.getReferencedVariables());
+        }
 
-		final SortedSet<String> variables = new TreeSet<String>();
+        for (final StatementInfo catchStatement : this.catchStatements) {
+            variables.addAll(catchStatement.getReferencedVariables());
+        }
 
-		for (final ProgramElementInfo expression : this.expressions) {
-			variables.addAll(expression.getReferencedVariables());
-		}
+        if (null != this.finallyStatement) {
+            variables.addAll(this.finallyStatement.getReferencedVariables());
+        }
 
-		for (final ProgramElementInfo initializer : this.initializers) {
-			variables.addAll(initializer.getReferencedVariables());
-		}
+        return variables;
+    }
 
-		if (null != this.condition) {
-			variables.addAll(this.condition.getReferencedVariables());
-		}
-
-		for (final ProgramElementInfo updater : this.updaters) {
-			variables.addAll(updater.getReferencedVariables());
-		}
-
-		for (final StatementInfo statement : this.statements) {
-			variables.addAll(statement.getReferencedVariables());
-		}
-
-		for (final StatementInfo statement : this.elseStatements) {
-			variables.addAll(statement.getReferencedVariables());
-		}
-
-		for (final StatementInfo catchStatement : this.catchStatements) {
-			variables.addAll(catchStatement.getReferencedVariables());
-		}
-
-		if (null != this.finallyStatement) {
-			variables.addAll(this.finallyStatement.getReferencedVariables());
-		}
-
-		return variables;
-	}
-
-	public String getLabel() {
-		return this.label;
-	}
-
-	public void setLabel(final String label) {
-		this.label = label;
-	}
-
-	public String getJumpToLabel() {
-		if (0 == this.expressions.size()) {
-			return null;
-		} else {
-			return this.expressions.get(0).getText();
-		}
-	}
+    public String getJumpToLabel() {
+        if (this.expressions.isEmpty()) {
+            return null;
+        } else {
+            return this.expressions.get(0).getText();
+        }
+    }
 }

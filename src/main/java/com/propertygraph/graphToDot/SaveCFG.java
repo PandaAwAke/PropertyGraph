@@ -35,11 +35,11 @@ public class SaveCFG {
         List<File> files = MainTest.getFiles(file);
         try {
             for (File f : files) {
-                final List<MethodInfo> methods = new ArrayList<MethodInfo>();
                 final CompilationUnit unit = ASTVisitor.createAST(f);
-                final List<MethodInfo> m = new ArrayList<MethodInfo>();
-                final ASTVisitor visitor = new ASTVisitor(
-                        f.getAbsolutePath(), unit, methods);
+
+                final List<MethodInfo> m = new ArrayList<>();
+                final ASTVisitor visitor = new ASTVisitor(unit);
+                final List<MethodInfo> methods = visitor.getMethods();
                 unit.accept(visitor);
                 methods.addAll(m);
 
