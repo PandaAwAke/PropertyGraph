@@ -15,18 +15,25 @@
 
 package com.propertygraph.pe;
 
+import lombok.Getter;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
 import java.util.*;
 
 public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
+	@Getter
+	final public boolean lambda;
+	@Getter
+	private ExpressionInfo lambdaExpression;
+
 	final public String name;
 	final private List<VariableInfo> parameters;
 	final private List<StatementInfo> statements;
 
-	public MethodInfo(final String name, final MethodDeclaration node, final int startLine, final int endLine) {
+	public MethodInfo(final boolean lambda, final String name, final Object node, final int startLine, final int endLine) {
 		super(node, startLine, endLine);
+		this.lambda = lambda;
 		this.name = name;
 		this.parameters = new ArrayList<>();
 		this.statements = new ArrayList<>();
@@ -69,11 +76,19 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 		return Collections.unmodifiableList(this.statements);
 	}
 
+	public void setLambdaExpression(ExpressionInfo lambdaExpression) {
+		assert lambda : "\"lambda\" is false.";
+		this.lambdaExpression = lambdaExpression;
+	}
+
 	@Override
 	public SortedSet<String> getAssignedVariables() {
 		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getAssignedVariables());
+		}
+		if (lambda) {
+			variables.addAll(lambdaExpression.getAssignedVariables());
 		}
 		return variables;
 	}
@@ -83,6 +98,9 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 		final SortedSet<String> variables = new TreeSet<>();
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getReferencedVariables());
+		}
+		if (lambda) {
+			variables.addAll(lambdaExpression.getReferencedVariables());
 		}
 		return variables;
 	}

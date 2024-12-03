@@ -150,7 +150,9 @@ public class CFG {
 			this.exitNodes.add(node);
 			this.nodes.add(node);
 		} else if (this.core instanceof MethodInfo coreMethod) {
-            this.buildSimpleBlockCFG(coreMethod);
+			if (!coreMethod.isLambda()) {
+				this.buildSimpleBlockCFG(coreMethod);
+			}
 		} else {
 			assert false : "unexpected state.";
 		}

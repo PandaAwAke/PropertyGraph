@@ -102,4 +102,9 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		this.ownerConditionalBlock = ownerConditionalBlock;
 	}
 
+	@Override
+	public String toString() {
+		return node.toString();
+	}
+
 }
