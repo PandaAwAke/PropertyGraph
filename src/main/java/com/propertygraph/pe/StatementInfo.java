@@ -21,40 +21,76 @@ import org.eclipse.jdt.core.dom.ASTNode;
 
 import java.util.*;
 
+/**
+ * Describe the information of a statement (in the ast).
+ */
+@Getter
 public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
-    @Getter
-    private ProgramElementInfo ownerBlock;
-    @Getter
-    private CATEGORY category;
+    /**
+     * The ownerBlock of this statement (if exists).
+     */
+    private final ProgramElementInfo ownerBlock;
 
-    private List<ProgramElementInfo> expressions;
+    /**
+     * The category of this statement.
+     */
+    public final CATEGORY category;
 
-    //hj
-    //hj
-    //如果是变量的声明  则记录变量的类型 hj
-    @Setter
-    @Getter
-    private String Instance;
-    //hj
-    @Setter
-    private boolean isArray;
-
-    final private List<ProgramElementInfo> initializers;
-
-    @Getter
+    /**
+     * If this is a conditional block (such as If or While),
+     * here is the condition element.
+     */
     private ProgramElementInfo condition;
-    final private List<ProgramElementInfo> updaters;
 
-    final private List<StatementInfo> statements;
-    final private List<StatementInfo> elseStatements;
-    final private List<StatementInfo> catchStatements;
+    /**
+     * All children expressions in this statement.
+     * In fact this list might contain many types of ProgramElementInfo (except BlockInfo)
+     */
+    private final List<ProgramElementInfo> expressions = new ArrayList<>();
 
-    @Getter
+    /**
+     * Used for "For" and "Foreach" statement.
+     * Records the initializer expressions in the "for" loop.
+     */
+    private final List<ProgramElementInfo> initializers = new ArrayList<>();
+
+    /**
+     * Used for "For" and "Foreach" statement.
+     * Records the updater expressions in the "for" loop.
+     */
+    private final List<ProgramElementInfo> updaters = new ArrayList<>();
+
+
+    /**
+     * All children statements in this statement.
+     * In fact this list might contain many types of ProgramElementInfo (except BlockInfo)
+     */
+    private final List<StatementInfo> statements = new ArrayList<>();
+
+    /**
+     * Used for "If" statement.
+     * Records the statements in "else" block.
+     */
+    private final List<StatementInfo> elseStatements = new ArrayList<>();
+
+    /**
+     * Used for "Try" statement.
+     * Records the "catch" blocks.
+     */
+    private final List<StatementInfo> catchStatements = new ArrayList<>();
+
+    /**
+     * Used for "Try" statement.
+     * Records the "finally" block.
+     */
     private StatementInfo finallyStatement;
 
+    /**
+     * If this is a LabeledStatement, here is the label of it.
+     * @see org.eclipse.jdt.core.dom.LabeledStatement
+     */
     @Setter
-    @Getter
     private String label;
 
     public StatementInfo(final ProgramElementInfo ownerBlock,
@@ -66,24 +102,32 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
         this.ownerBlock = ownerBlock;
         this.category = category;
-        this.expressions = new ArrayList<>();
 
-        //hj
-        this.Instance = null;
-        this.isArray = false;
-
-        this.initializers = new ArrayList<>();
         this.condition = null;
-        this.updaters = new ArrayList<>();
-
-        this.statements = new ArrayList<>();
-        this.elseStatements = new ArrayList<>();
-        this.catchStatements = new ArrayList<>();
         this.finallyStatement = null;
 
         this.label = null;
     }
 
+    /**
+     * Used for Continue and Break statement.
+     * Get the label to jump (if exists), such as "jumpOut" in "break jumpOut".
+     * @return The label to jump (if exists)
+     */
+    public String getJumpToLabel() {
+        if (this.category != CATEGORY.Break && this.category != CATEGORY.Continue) {
+            return null;
+        }
+        if (this.expressions.isEmpty()) {
+            return null;
+        } else {
+            return this.expressions.get(0).getText();
+        }
+    }
+
+    /**
+     * All supported statement types.
+     */
     public enum CATEGORY {
         Assert,
         Break,
@@ -107,21 +151,6 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         While,
     }
 
-    public void setOwnerBlock(final ProgramElementInfo ownerBlock) {
-        assert null != ownerBlock : "\"ownerBlock\" is null.";
-        this.ownerBlock = ownerBlock;
-    }
-
-    //hj
-    public boolean getIsArray() {
-        return isArray;
-    }
-
-    public void setCategory(final CATEGORY category) {
-        assert null != category : "\"category\" is null.";
-        this.category = category;
-    }
-
     public void addInitializer(final ProgramElementInfo initializer) {
         assert null != initializer : "\"initializer\" is null.";
         this.initializers.add(initializer);
@@ -135,14 +164,6 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
     public void addUpdater(final ProgramElementInfo updater) {
         assert null != updater : "\"updater\" is null.";
         this.updaters.add(updater);
-    }
-
-    public List<ProgramElementInfo> getInitializers() {
-        return new ArrayList<>(this.initializers);
-    }
-
-    public List<ProgramElementInfo> getUpdaters() {
-        return new ArrayList<>(this.updaters);
     }
 
     @Override
@@ -166,17 +187,6 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         this.statements.add(statement);
     }
 
-    @Override
-    public void addStatements(final Collection<StatementInfo> statements) {
-        assert null != statements : "\"statements\" is null.";
-        this.statements.addAll(statements);
-    }
-
-    @Override
-    public List<StatementInfo> getStatements() {
-        return Collections.unmodifiableList(this.statements);
-    }
-
     public void setElseStatement(final StatementInfo elseBody) {
         assert null != elseBody : "\"elseStatement\" is null.";
         this.elseStatements.clear();
@@ -187,17 +197,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         }
     }
 
-    public List<StatementInfo> getElseStatements() {
-        return Collections.unmodifiableList(this.elseStatements);
-    }
-
     public void addCatchStatement(final StatementInfo catchStatement) {
         assert null != catchStatement : "\"catchStatement\" is null.";
         this.catchStatements.add(catchStatement);
-    }
-
-    public List<StatementInfo> getCatchStatements() {
-        return Collections.unmodifiableList(this.catchStatements);
     }
 
     public void setFinallyStatement(final StatementInfo finallyStatement) {
@@ -210,9 +212,6 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         this.expressions.add(element);
     }
 
-    public List<ProgramElementInfo> getExpressions() {
-        return new ArrayList<>(this.expressions);
-    }
 
     @Override
     public SortedSet<String> getAssignedVariables() {
@@ -292,11 +291,4 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         return variables;
     }
 
-    public String getJumpToLabel() {
-        if (this.expressions.isEmpty()) {
-            return null;
-        } else {
-            return this.expressions.get(0).getText();
-        }
-    }
 }

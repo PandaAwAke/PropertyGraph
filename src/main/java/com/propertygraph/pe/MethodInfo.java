@@ -19,32 +19,51 @@ import lombok.Getter;
 
 import java.util.*;
 
+/**
+ * Describe the information of a method (in the ast).
+ */
+@Getter
 public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
-	@Getter
+	/**
+	 * Used for lambda expression. Mark whether this is a lambda method.
+	 */
 	final public boolean lambda;
-	@Getter
+
+	/**
+	 * Used for lambda expression.
+	 * If lambda expression only consists of 1 expression, then this is it.
+	 */
 	private ExpressionInfo lambdaExpression;
 
+	/**
+	 * The name of the method.
+	 */
 	final public String name;
-	final private List<VariableInfo> parameters;
-	final private List<StatementInfo> statements;
+
+	/**
+	 * The parameter VariableInfos.
+	 */
+	final private List<VariableInfo> parameters = new ArrayList<>();
+
+	/**
+	 * The statements inside the block.
+	 */
+	final private List<StatementInfo> statements = new ArrayList<>();
 
 	public MethodInfo(final boolean lambda, final String name, final Object node, final int startLine, final int endLine) {
 		super(node, startLine, endLine);
 		this.lambda = lambda;
 		this.name = name;
-		this.parameters = new ArrayList<>();
-		this.statements = new ArrayList<>();
 	}
 
+	/**
+	 * Add a parameter VariableInfo.
+	 * @param parameter The parameter info to add
+	 */
 	public void addParameter(final VariableInfo parameter) {
 		assert null != parameter : "\"variable\" is null.";
 		this.parameters.add(parameter);
-	}
-
-	public SortedSet<VariableInfo> getParameters() {
-        return new TreeSet<>(this.parameters);
 	}
 
 	@Override
@@ -64,17 +83,10 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 		this.statements.add(statement);
 	}
 
-	@Override
-	public void addStatements(final Collection<StatementInfo> statements) {
-		assert null != statements : "\"statements\" is null.";
-		this.statements.addAll(statements);
-	}
-
-	@Override
-	public List<StatementInfo> getStatements() {
-		return Collections.unmodifiableList(this.statements);
-	}
-
+	/**
+	 * Set the lambda expression if this is a single-expression lambda function.
+	 * @param lambdaExpression The single expression in this lambda function
+	 */
 	public void setLambdaExpression(ExpressionInfo lambdaExpression) {
 		assert lambda : "\"lambda\" is false.";
 		this.lambdaExpression = lambdaExpression;

@@ -24,24 +24,41 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+/**
+ * Describe the information of an expression (in the ast).
+ */
+@Getter
 public class ExpressionInfo extends ProgramElementInfo {
 
-    @Getter
-    final public CATEGORY category;
+    /**
+     * The category of this expression.
+     */
+    public final CATEGORY category;
 
-    @Getter
+    /**
+     * The qualifier name, such as "a" in "a.foo()" or "a.value"
+     * @see org.eclipse.jdt.core.dom.QualifiedName
+     */
     private ProgramElementInfo qualifier;
 
-    final private List<ProgramElementInfo> expressions;
+    /**
+     * All children elements in this expression.
+     * In fact this list might contain many types of ProgramElementInfo (except BlockInfo)
+     */
+    private final List<ProgramElementInfo> expressions = new ArrayList<>();
 
-    @Getter
+    /**
+     * Used for ClassInstanceCreation.
+     * @see org.eclipse.jdt.core.dom.ClassInstanceCreation
+     */
     private ClassInfo anonymousClassDeclaration;
 
-//	@Getter
 //	@Setter
     //private ITypeBinding iTypeBinding;
 
-    @Getter
+    /**
+     * If this expression is MethodInvocation, this is the full qualified name of the method.
+     */
     @Setter
     private String apiName;
 
@@ -49,11 +66,13 @@ public class ExpressionInfo extends ProgramElementInfo {
         super(node, startLine, endLine);
         this.category = category;
         this.qualifier = null;
-        this.expressions = new ArrayList<>();
         this.anonymousClassDeclaration = null;
         //this.iTypeBinding = iTypeBinding;
     }
 
+    /**
+     * All supported expression types.
+     */
     public enum CATEGORY {
         ArrayAccess,
         ArrayCreation,
@@ -80,7 +99,7 @@ public class ExpressionInfo extends ProgramElementInfo {
         SuperFieldAccess,
         SuperMethodInvocation,
         This,
-        Trinomial,
+        Trinomial,  // such as "x ? a : b"
         TypeLiteral,
         VariableDeclarationExpression,
         VariableDeclarationFragment,
@@ -95,10 +114,6 @@ public class ExpressionInfo extends ProgramElementInfo {
     public void addExpression(final ProgramElementInfo expression) {
         assert null != expression : "\"expression\" is null.";
         this.expressions.add(expression);
-    }
-
-    public List<ProgramElementInfo> getExpressions() {
-        return new ArrayList<>(this.expressions);
     }
 
     public void setAnonymousClassDeclaration(final ClassInfo anonymousClassDeclaration) {

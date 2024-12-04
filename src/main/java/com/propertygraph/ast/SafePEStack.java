@@ -1,13 +1,12 @@
 package com.propertygraph.ast;
 
 import com.propertygraph.pe.ProgramElementInfo;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.util.Stack;
 
 /**
  * The default java.util.Stack used in ASTVisitor has a problem:
- *      when an unsupported node was visited, the children might be supported and visited,
+ *      when an unsupported node was visited, its children nodes might be supported and visited,
  *      causing additional stack pushes (i.e. at least pushing twice) without popping anything.
  * This safe stack is used for ensuring that every supported node will only cause <= 1 pushes when leaving the visitor.
  */
@@ -32,11 +31,12 @@ public class SafePEStack {
     /**
      * Pop the stack until stack.size <= maxSizeAfterPop.
      * @param maxSizeAfterPop The max size allowed to reserve in the stack
-     * @param <PE> The expectedTypeClass to return
+     * @param expectedTypeClass The class of the expected result type
      * @return The latest popped value, or null when: <br>
      *      1. Nothing was popped <br>
      *      2. The latest popped value is not the expected type <br>
-     *      3. Popped more than 1 value
+     *      3. More than 1 value was popped
+     * @param <PE> The expectedTypeClass to return
      */
     public <PE extends ProgramElementInfo> PE pop(int maxSizeAfterPop, Class<PE> expectedTypeClass) {
         ProgramElementInfo result = null;
@@ -56,11 +56,22 @@ public class SafePEStack {
         }
     }
 
+    /**
+     * Return whether this stack is empty.
+     * @return true if this stack is empty
+     */
     public boolean isEmpty() {
         return stack.isEmpty();
     }
 
+    /**
+     * Get the object at the top of this stack without popping it.
+     * @return The object at the top of this stack, or null if this stack is empty
+     */
     public ProgramElementInfo peek() {
+        if (stack.isEmpty()) {
+            return null;
+        }
         return stack.peek();
     }
 

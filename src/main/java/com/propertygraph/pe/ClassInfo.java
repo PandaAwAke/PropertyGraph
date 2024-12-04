@@ -15,14 +15,26 @@
 
 package com.propertygraph.pe;
 
+import lombok.Getter;
 import org.eclipse.jdt.core.dom.ASTNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Describe the information of a Class / AnonymousClass (in the ast).
+ */
 public class ClassInfo extends ProgramElementInfo {
 
+	/**
+	 * The name of the class. For anonymous class, this is null.
+	 */
 	final public String name;
+
+	/**
+	 * The MethodInfo of methods in this class.
+	 */
+	@Getter
 	final private List<MethodInfo> methods;
 
 	public ClassInfo(final String name, final ASTNode node, final int startLine, final int endLine) {
@@ -31,17 +43,21 @@ public class ClassInfo extends ProgramElementInfo {
 		this.methods = new ArrayList<>();
 	}
 
+	/**
+	 * Check whether this is an anonymous class.
+	 * @return true if this is an anonymous class
+	 */
 	public boolean isAnonymous() {
 		return null == this.name;
 	}
 
+	/**
+	 * Add a MethodInfo.
+	 * @param method MethodInfo
+	 */
 	public void addMethod(final MethodInfo method) {
 		assert null != method : "\"method\" is null.";
 		this.methods.add(method);
-	}
-
-	public List<MethodInfo> getMethods() {
-        return new ArrayList<>(this.methods);
 	}
 
 }

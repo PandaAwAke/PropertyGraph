@@ -17,8 +17,14 @@ package com.propertygraph.pe;
 
 import org.eclipse.jdt.core.dom.Type;
 
+/**
+ * Describe the information of a type (in the ast).
+ */
 public class TypeInfo extends ProgramElementInfo {
 
+	/**
+	 * The name of the type.
+	 */
 	final public String name;
 
 	public TypeInfo(final String name, final Type node, final int startLine, final int endLine) {

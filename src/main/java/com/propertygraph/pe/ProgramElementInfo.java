@@ -23,19 +23,49 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Getter
 abstract public class ProgramElementInfo implements Comparable<ProgramElementInfo> {
 
+	/**
+	 * The ID generator to generate a unique id for every ProgramElementInfo (thread safely).
+	 */
 	final static private AtomicInteger ID_GENERATOR = new AtomicInteger(0);
 
-	final public Object node;
-	final public int startLine;
-	final public int endLine;
+	/**
+	 * The unique id of the program element.
+	 */
 	final public int id;
 
+	/**
+	 * The original ast node from the parser.
+	 * Usually used for debugging, or getting additional information from the ast.
+	 */
+	final public Object node;
+
+	/**
+	 * The start line number of the program element (ast).
+	 */
+	final public int startLine;
+
+	/**
+	 * The end line number of the program element (ast).
+	 */
+	final public int endLine;
+
+	/**
+	 * One type of the text representation for the program element.
+	 */
 	private String text;
 
+	/**
+	 * The modifiers of the program element (ast) (if exists).
+	 */
 	final private List<String> modifiers;
 
+	/**
+	 * Used to mark whether this program element is the "condition" of another element
+	 * (such as the condition of an "If" statement).
+	 */
 	@Getter
     protected BlockInfo ownerConditionalBlock;
 
@@ -65,8 +95,10 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
         return this.id == target.id;
 	}
 
-	final public String getText() {
-		return this.text;
+	@Override
+	final public int compareTo(final ProgramElementInfo element) {
+		assert null != element : "\"element\" is null.";
+        return Integer.compare(this.id, element.id);
 	}
 
 	final public void setText(final String text) {
@@ -74,37 +106,36 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		this.text = text;
 	}
 
-	@Override
-	final public int compareTo(final ProgramElementInfo element) {
-		assert null != element : "\"element\" is null.";
-        return Integer.compare(this.id, element.id);
-	}
-
 	final public void addModifier(final String modifier) {
 		assert null != modifier : "\"modifier\" is null.";
 		this.modifiers.add(modifier);
 	}
 
-	final public List<String> getModifiers() {
-        return new ArrayList<>(this.modifiers);
-	}
-
+	/**
+     * Analyze the defined variables (i.e. defs) in this program element.
+     * @return The variable defs in the program element
+     */
 	public SortedSet<String> getAssignedVariables() {
 		return new TreeSet<>();
 	}
 
+	/**
+     * Analyze the used variables (i.e. uses) in this program element.
+     * @return The variable uses in the program element
+     */
 	public SortedSet<String> getReferencedVariables() {
 		return new TreeSet<>();
 	}
 
-	public void setOwnerConditinalBlock(final BlockInfo ownerConditionalBlock) {
+	public void setOwnerConditionalBlock(final BlockInfo ownerConditionalBlock) {
 		assert null != ownerConditionalBlock : "\"ownerConditionalBlock\" is null.";
 		this.ownerConditionalBlock = ownerConditionalBlock;
 	}
 
 	@Override
 	public String toString() {
-		return node.toString();
+		return text;
+//		return node.toString();
 	}
 
 }

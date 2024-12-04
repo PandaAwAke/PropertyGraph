@@ -18,13 +18,41 @@ package com.propertygraph.pe;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Describe a ProgramElement that can lead a block.
+ */
 public interface BlockInfo {
 
+	/**
+	 * Set the statement information of the block.
+	 * In detail, it firstly clears the statements,
+	 * then if statement is a simple block, then all statements inside will be added.
+	 * Otherwise, only add one statement.
+	 * @param statement The statement to set
+	 */
 	void setStatement(StatementInfo statement);
 
+	/**
+	 * Add a statement information to the block.
+	 * @param statement The statement to add
+	 */
 	void addStatement(StatementInfo statement);
 
-	void addStatements(Collection<StatementInfo> statements);
+	/**
+	 * Add multiple statement information to the block.
+	 * @param statements The statements to add
+	 */
+	default void addStatements(Collection<StatementInfo> statements) {
+		assert null != statements : "\"statements\" is null.";
+		for (StatementInfo statement : statements) {
+			addStatement(statement);
+		}
+	}
 
+	/**
+	 * Get the statements in the block.
+	 * @return The statements in the block
+	 */
 	List<StatementInfo> getStatements();
+
 }

@@ -29,17 +29,25 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This is an ASTVisitor used for building our ProgramElementInfos from ASTNodes.
+ */
 @Slf4j
 public class ASTVisitor extends NaiveASTFlattener {
 
     private static final String lineSeparator = System.lineSeparator();
 
+    /**
+     * Create an AST from the source code.
+     * @param source The source code of a java file (CompilationUnit)
+     * @return The AST node (CompilationUnit)
+     */
     public static CompilationUnit createAST(final String source) {
         final ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
+
         parser.setSource(source.toCharArray());
-        // hj add 4.22
         parser.setEnvironment(null, null, null, true);
-        parser.setUnitName("any_name");
+//        parser.setUnitName("any_name");
         parser.setKind(ASTParser.K_COMPILATION_UNIT);
         parser.setResolveBindings(true);
         parser.setBindingsRecovery(true);
@@ -47,13 +55,17 @@ public class ASTVisitor extends NaiveASTFlattener {
         return (CompilationUnit) parser.createAST(null);
     }
 
+    /**
+     * Create an AST from a file.
+     * @param file The java file
+     * @return The AST node (CompilationUnit)
+     */
 	public static CompilationUnit createAST(final File file) {
 		final StringBuilder text = new StringBuilder();
 		final BufferedReader reader;
 		try {
 			reader = new BufferedReader(new InputStreamReader(
                     Files.newInputStream(file.toPath()), "JISAutoDetect"));
-
 			while (reader.ready()) {
 				final String line = reader.readLine();
 				text.append(line);
@@ -63,229 +75,48 @@ public class ASTVisitor extends NaiveASTFlattener {
 		} catch (IOException e) {
 			log.error(e.getMessage(), e);
 		}
-
 		return createAST(text.toString());
 	}
 
+
+    // --------------------------- Fields & Methods ---------------------------
+
+
+    /**
+     * The java file (root) ast node.
+     */
     @Getter
     final private CompilationUnit root;
 
+    /**
+     * The methods in this java file.
+     */
     @Getter
     final private List<MethodInfo> methods = new ArrayList<>();
 
+    /**
+     * This stack is safe to use when encountering some unsupported nodes.
+     */
     final private SafePEStack stack = new SafePEStack();
 
     public ASTVisitor(final CompilationUnit root) {
         this.root = root;
     }
 
-    //class
-    @Override
-    public boolean visit(final TypeDeclaration node) {
-        final int startLine = this.getStartLineNumber(node);
-        final int endLine = this.getEndLineNumber(node);
-        final ClassInfo typeDeclaration = new ClassInfo(node.getName().toString(), node, startLine, endLine);
-        int maxStackSize = this.stack.push(typeDeclaration);
-
-        final StringBuilder text = new StringBuilder();
-        text.append("class ");
-        text.append(node.getName().toString());
-        text.append("{");
-        text.append(lineSeparator);
-        for (final Object o : node.bodyDeclarations()) {
-            if (o instanceof MethodDeclaration) {
-                ((ASTNode) o).accept(this);
-                final MethodInfo method = this.stack.pop(maxStackSize, MethodInfo.class);
-                if (method != null) {
-                    this.methods.add(method);
-                    typeDeclaration.addMethod(method);
-                    text.append(method.getText());
-                    text.append(lineSeparator);
-                }
-            }
-        }
-        text.append("}");
-        typeDeclaration.setText(text.toString());
-
-        return false;
-    }
-
-    @Override
-    public boolean visit(ExpressionMethodReference node) {
-        return super.visit(node);
-    }
-
-    @Override
-    public boolean visit(final TypeDeclarationStatement node) {
-        if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
-            final int startLine = this.getStartLineNumber(node);
-            final int endLine = this.getEndLineNumber(node);
-            final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo statement = new StatementInfo(ownerBlock,
-                    StatementInfo.CATEGORY.TypeDeclaration, node, startLine, endLine);
-            int maxStackSize = this.stack.push(statement);
-
-            node.getDeclaration().accept(this);
-            final ProgramElementInfo typeDeclaration = this.stack.pop(maxStackSize, ProgramElementInfo.class);
-            if (typeDeclaration != null) {
-                statement.addExpression(typeDeclaration);
-                statement.setText(typeDeclaration.getText());
-            }
-        }
-
-        return false;
-    }
-
-    @Override
-    public boolean visit(final AnnotationTypeDeclaration node) {
-        for (final Object o : node.bodyDeclarations()) {
-            int maxStackSize = this.stack.size();
-            ((ASTNode) o).accept(this);
-            final ProgramElementInfo method = this.stack.pop(maxStackSize, ProgramElementInfo.class);
-        }
-
-        return false;
-    }
-
-    @Override
-    public boolean visit(final AnonymousClassDeclaration node) {
-        final StringBuilder text = new StringBuilder();
-        text.append("{");
-        text.append(lineSeparator);
-
-        final int startLine = this.getStartLineNumber(node);
-        final int endLine = this.getEndLineNumber(node);
-        final ClassInfo anonymousClass = new ClassInfo(null, node, startLine, endLine);
-        int maxStackSize = this.stack.push(anonymousClass);
-
-        for (final Object o : node.bodyDeclarations()) {
-            if (o instanceof MethodDeclaration) {
-                ((ASTNode) o).accept(this); // class 到 method
-                final MethodInfo method = this.stack.pop(maxStackSize, MethodInfo.class);
-                if (method != null) {
-                    anonymousClass.addMethod(method);
-                    text.append(method.getText());
-                }
-            }
-        }
-
-        text.append("}");
-        anonymousClass.setText(text.toString());
-
-        return false;
-    }
-
-    // method
-    @Override
-    public boolean visit(final MethodDeclaration node) {
-        final int startLine = this.getStartLineNumber(node);
-        final int endLine = this.getEndLineNumber(node);
-        final String name = node.getName().getIdentifier();
-        final MethodInfo method = new MethodInfo(false, name, node, startLine, endLine);
-        int maxStackSize = this.stack.push(method);
-
-        final StringBuilder text = new StringBuilder();
-        for (final Object modifier : node.modifiers()) {
-            method.addModifier(modifier.toString());
-            text.append(modifier);
-            text.append(" ");
-        }
-        if (null != node.getReturnType2()) { //返回值
-            text.append(node.getReturnType2().toString());
-            text.append(" ");
-        }
-        text.append(name);
-        text.append(" (");
-
-        for (final Object o : node.parameters()) {
-            ((ASTNode) o).accept(this);
-            final VariableInfo parameter = this.stack.pop(maxStackSize, VariableInfo.class);
-            if (parameter != null) {
-                parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
-                method.addParameter(parameter);
-                text.append(parameter.getText());
-                text.append(" ,");
-            }
-        }
-        if (text.toString().endsWith(",")) {
-            text.deleteCharAt(text.length() - 1);
-        }
-        text.append(" ) ");
-
-        if (null != node.getBody()) {
-            node.getBody().accept(this);
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
-            if (body != null) {
-                method.setStatement(body);
-                text.append(body.getText());
-            }
-        }
-        method.setText(text.toString());
-
-        return false;
-    }
-
-    /*
-     * Added to handle lambda expressions.
+    /**
+     * Get the ast node's start line number.
+     * @param node The ASTNode
+     * @return The start line number
      */
-    @Override
-    public boolean visit(LambdaExpression node) {
-        final int startLine = this.getStartLineNumber(node);
-        final int endLine = this.getEndLineNumber(node);
-
-        final MethodInfo method = new MethodInfo(true, null, node, startLine, endLine);
-        int maxStackSize = this.stack.push(method);
-
-        final StringBuilder text = new StringBuilder();
-
-        boolean hasParentheses = node.hasParentheses();
-		if (hasParentheses)
-			text.append('(');
-
-		for (final Object o : node.parameters()) {
-			VariableDeclaration v = (VariableDeclaration) o;
-            assert v instanceof VariableDeclarationFragment;
-			v.accept(this);
-
-            final ExpressionInfo vdFragment = this.stack.pop(maxStackSize, ExpressionInfo.class);
-            text.append(vdFragment.getExpressions().get(0).getText());  // The name of the parameter
-            text.append(",");
-		}
-        if (text.toString().endsWith(",")) {
-            text.deleteCharAt(text.length() - 1);
-        }
-
-		if (hasParentheses)
-			text.append(')');
-
-		text.append(" -> ");
-
-        if (null != node.getBody()) {
-            node.getBody().accept(this);
-            final ProgramElementInfo body = this.stack.pop(maxStackSize, ProgramElementInfo.class);
-            if (body != null) {
-                // The body is either a Block or an Expression
-                if (body instanceof StatementInfo) {
-                    method.setStatement((StatementInfo) body);
-                } else if (body instanceof ExpressionInfo) {
-                    method.setLambdaExpression((ExpressionInfo) body);
-                } else {
-                    assert false;
-                }
-                text.append(body.getText());
-            }
-        } else {
-            text.append("{}");
-        }
-
-        method.setText(text.toString());
-		return false;
-    }
-
     private int getStartLineNumber(final ASTNode node) {
         return root.getLineNumber(node.getStartPosition());
     }
 
+    /**
+     * Get the ast node's end line number.
+     * @param node The ASTNode
+     * @return The end line number
+     */
     private int getEndLineNumber(final ASTNode node) {
         if (node instanceof IfStatement) {
             final ASTNode elseStatement = ((IfStatement) node).getElseStatement();
@@ -315,16 +146,214 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
     }
 
+    /**
+     * Visit the node (usually a child node) and securely pop the expected result out.
+     * @param node The node to visit
+     * @param maxSizeAfterPop The max size allowed to reserve in the stack
+     * @param expectedTypeClass The class of the expected result type
+     * @return The expected ProgramElementInfo result of the node, or null when failed (see {@link SafePEStack})
+     * @param <PE> The expectedTypeClass to return
+     */
+    private <PE extends ProgramElementInfo> PE visitAndPop(Object node, int maxSizeAfterPop, Class<PE> expectedTypeClass) {
+        if (node == null) {
+            return null;
+        }
+        assert node instanceof ASTNode : "\"node\" should be an ASTNode";
+        ((ASTNode) node).accept(this);
+        return stack.pop(maxSizeAfterPop, expectedTypeClass);
+    }
+
+
+    // --------------------------- Override functions ---------------------------
+
+
+    // class
+    @Override
+    public boolean visit(final TypeDeclaration node) {
+        final int startLine = this.getStartLineNumber(node);
+        final int endLine = this.getEndLineNumber(node);
+        final ClassInfo typeDeclaration = new ClassInfo(node.getName().toString(), node, startLine, endLine);
+        int maxStackSize = this.stack.push(typeDeclaration);
+
+        final StringBuilder text = new StringBuilder();
+        text.append("class ")
+                .append(node.getName().toString())
+                .append("{")
+                .append(lineSeparator);
+
+        for (final Object o : node.bodyDeclarations()) {
+            if (o instanceof MethodDeclaration methodDeclaration) {
+                final MethodInfo method = this.visitAndPop(methodDeclaration, maxStackSize, MethodInfo.class);
+                if (method != null) {
+                    this.methods.add(method);
+                    typeDeclaration.addMethod(method);
+                    text.append(method.getText());
+                    text.append(lineSeparator);
+                }
+            }
+        }
+
+        text.append("}");
+        typeDeclaration.setText(text.toString());
+        return false;
+    }
+
+    @Override
+    public boolean visit(final TypeDeclarationStatement node) {
+        if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
+            final int startLine = this.getStartLineNumber(node);
+            final int endLine = this.getEndLineNumber(node);
+            final ProgramElementInfo ownerBlock = this.stack.peek();
+            final StatementInfo statement = new StatementInfo(ownerBlock,
+                    StatementInfo.CATEGORY.TypeDeclaration, node, startLine, endLine);
+            int maxStackSize = this.stack.push(statement);
+
+            final ProgramElementInfo typeDeclaration = this.visitAndPop(node.getDeclaration(), maxStackSize, ProgramElementInfo.class);
+            if (typeDeclaration != null) {
+                statement.addExpression(typeDeclaration);
+                statement.setText(typeDeclaration.getText());
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean visit(final AnnotationTypeDeclaration node) {
+        for (final Object o : node.bodyDeclarations()) {
+            int maxStackSize = this.stack.size();
+            this.visitAndPop(o, maxStackSize, ProgramElementInfo.class);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean visit(final AnonymousClassDeclaration node) {
+        final int startLine = this.getStartLineNumber(node);
+        final int endLine = this.getEndLineNumber(node);
+        final ClassInfo anonymousClass = new ClassInfo(null, node, startLine, endLine);
+        int maxStackSize = this.stack.push(anonymousClass);
+
+        final StringBuilder text = new StringBuilder();
+        text.append("{").append(lineSeparator);
+
+        for (final Object o : node.bodyDeclarations()) {
+            if (o instanceof MethodDeclaration methodDeclaration) {
+                final MethodInfo method = this.visitAndPop(methodDeclaration, maxStackSize, MethodInfo.class);
+                if (method != null) {
+                    anonymousClass.addMethod(method);
+                    text.append(method.getText());
+                }
+            }
+        }
+        text.append("}");
+        anonymousClass.setText(text.toString());
+        return false;
+    }
+
+    // method
+    @Override
+    public boolean visit(final MethodDeclaration node) {
+        final int startLine = this.getStartLineNumber(node);
+        final int endLine = this.getEndLineNumber(node);
+        final String name = node.getName().getIdentifier();
+        final MethodInfo method = new MethodInfo(false, name, node, startLine, endLine);
+        int maxStackSize = this.stack.push(method);
+
+        final StringBuilder text = new StringBuilder();
+        for (final Object modifier : node.modifiers()) {
+            method.addModifier(modifier.toString());
+            text.append(modifier).append(" ");
+        }
+        if (null != node.getReturnType2()) {    // type of return value
+            text.append(node.getReturnType2().toString()).append(" ");
+        }
+        text.append(name).append(" (");
+
+        for (final Object o : node.parameters()) {
+            final VariableInfo parameter = this.visitAndPop(o, maxStackSize, VariableInfo.class);
+            if (parameter != null) {
+                parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
+                method.addParameter(parameter);
+                text.append(parameter.getText());
+                text.append(",");
+            }
+        }
+        if (text.toString().endsWith(",")) {
+            text.deleteCharAt(text.length() - 1);
+        }
+        text.append(") ");
+
+        if (null != node.getBody()) {
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
+            if (body != null) {
+                method.setStatement(body);
+                text.append(body.getText());
+            }
+        }
+        method.setText(text.toString());
+
+        return false;
+    }
+
+    @Override
+    public boolean visit(final LambdaExpression node) {
+        final int startLine = this.getStartLineNumber(node);
+        final int endLine = this.getEndLineNumber(node);
+
+        final MethodInfo method = new MethodInfo(true, null, node, startLine, endLine);
+        int maxStackSize = this.stack.push(method);
+
+        final StringBuilder text = new StringBuilder();
+
+        boolean hasParentheses = node.hasParentheses();
+		if (hasParentheses)
+			text.append('(');
+
+		for (final Object o : node.parameters()) {
+			VariableDeclaration v = (VariableDeclaration) o;
+            assert v instanceof VariableDeclarationFragment;
+
+            final ExpressionInfo vdFragment = this.visitAndPop(v, maxStackSize, ExpressionInfo.class);
+            text.append(vdFragment.getExpressions().get(0).getText());  // The name of the parameter
+            text.append(",");
+		}
+        if (text.toString().endsWith(",")) {
+            text.deleteCharAt(text.length() - 1);
+        }
+
+		if (hasParentheses)
+			text.append(')');
+
+		text.append(" -> ");
+
+        if (null != node.getBody()) {
+            final ProgramElementInfo body = this.visitAndPop(node.getBody(), maxStackSize, ProgramElementInfo.class);
+            if (body != null) {
+                // The body is either a Block or an Expression
+                if (body instanceof StatementInfo) {
+                    method.setStatement((StatementInfo) body);
+                } else if (body instanceof ExpressionInfo) {
+                    method.setLambdaExpression((ExpressionInfo) body);
+                } else {
+                    assert false;
+                }
+                text.append(body.getText());
+            }
+        } else {
+            text.append("{}");
+        }
+
+        method.setText(text.toString());
+		return false;
+    }
+
     @Override
     public boolean visit(final AssertStatement node) {
         if (!this.stack.isEmpty() && this.stack.peek() instanceof BlockInfo) {
             int maxStackSize = this.stack.size();
 
-            node.getExpression().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
-
-            node.getMessage().accept(this);
-            final ProgramElementInfo message = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo message = this.visitAndPop(node.getMessage(), maxStackSize, ProgramElementInfo.class);
 
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
@@ -337,10 +366,8 @@ public class ASTVisitor extends NaiveASTFlattener {
             if (message != null) {
                 statement.addExpression(message);
             }
-
-            maxStackSize = this.stack.push(statement);
+            this.stack.push(statement);
         }
-
         return false;
     }
 
@@ -354,36 +381,32 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getArray().accept(this);
-        final ProgramElementInfo array = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo array = this.visitAndPop(node.getArray(), maxStackSize, ProgramElementInfo.class);
         if (array != null) {
             expression.addExpression(array);
             text.append(array.getText());
         }
 
-        node.getIndex().accept(this);
-        final ProgramElementInfo index = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo index = this.visitAndPop(node.getIndex(), maxStackSize, ProgramElementInfo.class);
         if (index != null) {
             expression.addExpression(index);
-            text.append("[");
-            text.append(index.getText());
-            text.append("]");
+            text.append("[")
+                    .append(index.getText())
+                    .append("]");
         }
         expression.setText(text.toString());
-
         return false;
     }
 
     @Override
     public boolean visit(final ArrayType node) {
         final StringBuilder text = new StringBuilder();
-        text.append(node.getElementType().toString());
-        text.append("[]".repeat(Math.max(0, node.getDimensions())));
+        text.append(node.getElementType().toString())
+                .append("[]".repeat(Math.max(0, node.getDimensions())));
         final int startLine = this.getStartLineNumber(node);
         final int endLine = this.getEndLineNumber(node);
         final TypeInfo type = new TypeInfo(text.toString(), node, startLine, endLine);
-        int maxStackSize = this.stack.push(type);
-
+        this.stack.push(type);
         return false;
     }
 
@@ -394,8 +417,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final ProgramElementInfo expression = new ExpressionInfo(ExpressionInfo.CATEGORY.Null,
                 node, startLine, endLine);
         expression.setText("null");
-        int maxStackSize = this.stack.push(expression);
-
+        this.stack.push(expression);
         return false;
     }
 
@@ -406,8 +428,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final ProgramElementInfo expression = new ExpressionInfo(ExpressionInfo.CATEGORY.Number,
                 node, startLine, endLine);
         expression.setText(node.getToken());
-        int maxStackSize = this.stack.push(expression);
-
+        this.stack.push(expression);
         return false;
     }
 
@@ -421,8 +442,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getOperand().accept(this);
-        final ProgramElementInfo operand = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo operand = this.visitAndPop(node.getOperand(), maxStackSize, ProgramElementInfo.class);
         if (operand != null) {
             postfixExpression.addExpression(operand);
             text.append(operand.getText());
@@ -434,7 +454,6 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         text.append(operator.getText());
         postfixExpression.setText(text.toString());
-
         return false;
     }
 
@@ -452,8 +471,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         prefixExpression.addExpression(operator);
         text.append(operator.getText());
 
-        node.getOperand().accept(this);
-        final ProgramElementInfo operand = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo operand = this.visitAndPop(node.getOperand(), maxStackSize, ProgramElementInfo.class);
         if (operand != null) {
             prefixExpression.addExpression(operand);
             text.append(operand.getText());
@@ -471,8 +489,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final ProgramElementInfo expression = new ExpressionInfo(ExpressionInfo.CATEGORY.String,
                 node, startLine, endLine);
         expression.setText("\"" + node.getLiteralValue() + "\"");
-        int maxStackSize = this.stack.push(expression);
-
+        this.stack.push(expression);
         return false;
     }
 
@@ -487,15 +504,13 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
         text.append("super.");
 
-        node.getName().accept(this);
-        final ProgramElementInfo name = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo name = this.visitAndPop(node.getName(), maxStackSize, ProgramElementInfo.class);
         if (name != null) {
             superFieldAccess.addExpression(name);
             text.append(name.getText());
         }
 
         superFieldAccess.setText(text.toString());
-
         return false;
     }
 
@@ -510,23 +525,20 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
         text.append("super.");
 
-        node.getName().accept(this);
-        final ProgramElementInfo name = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo name = this.visitAndPop(node.getName(), maxStackSize, ProgramElementInfo.class);
         if (name != null) {
             superMethodInvocation.addExpression(name);
             text.append(name);
         }
 
         for (final Object argument : node.arguments()) {
-            ((ASTNode) argument).accept(this);
-            final ProgramElementInfo argumentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo argumentExpression = this.visitAndPop(argument, maxStackSize, ProgramElementInfo.class);
             if (argumentExpression != null) {
                 superMethodInvocation.addExpression(argumentExpression);
                 text.append(argumentExpression.getText());
             }
         }
         superMethodInvocation.setText(text.toString());
-
         return false;
     }
 
@@ -536,8 +548,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final int endLine = this.getEndLineNumber(node);
         final ProgramElementInfo expression = new ExpressionInfo(ExpressionInfo.CATEGORY.TypeLiteral,
                 node, startLine, endLine);
-        int maxStackSize = this.stack.push(expression);
-
+        this.stack.push(expression);
         return false;
     }
 
@@ -551,15 +562,13 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getQualifier().accept(this);
-        final ProgramElementInfo qualifier = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo qualifier = this.visitAndPop(node.getQualifier(), maxStackSize, ProgramElementInfo.class);
         if (qualifier != null) {
             qualifiedName.setQualifier(qualifier);
             text.append(qualifier.getText());
         }
 
-        node.getName().accept(this);
-        final ProgramElementInfo name = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo name = this.visitAndPop(node.getName(), maxStackSize, ProgramElementInfo.class);
         if (name != null) {
             qualifiedName.addExpression(name);
             text.append(".");
@@ -567,7 +576,6 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
 
         qualifiedName.setText(text.toString());
-
         return false;
     }
 
@@ -578,8 +586,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final ProgramElementInfo simpleName = new ExpressionInfo(ExpressionInfo.CATEGORY.SimpleName,
                 node, startLine, endLine);
         simpleName.setText(node.getIdentifier());
-        int maxStackSize = this.stack.push(simpleName);
-
+        this.stack.push(simpleName);
         return false;
     }
 
@@ -590,8 +597,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final ProgramElementInfo expression = new ExpressionInfo(ExpressionInfo.CATEGORY.Character,
                 node, startLine, endLine);
         expression.setText("'" + node.charValue() + "'");
-        int maxStackSize = this.stack.push(expression);
-
+        this.stack.push(expression);
         return false;
     }
 
@@ -605,26 +611,21 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getExpression().accept(this);
-        final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
         if (expression != null) {
             fieldAccess.addExpression(expression);
             text.append(expression.getText());
         }
 
-        node.getName().accept(this);
-        final ProgramElementInfo name = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo name = this.visitAndPop(node.getName(), maxStackSize, ProgramElementInfo.class);
         if (name != null) {
             fieldAccess.addExpression(name);
-            text.append(".");
-            text.append(name.getText());
+            text.append(".").append(name.getText());
         }
         fieldAccess.setText(text.toString());
-
         return false;
     }
 
-    // if ( InfixExpression ) 从ifBlock跳过来的 while for switch
     @Override
     public boolean visit(final InfixExpression node) {
         final int startLine = this.getStartLineNumber(node);
@@ -637,8 +638,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         //text.append("if");
         text.append(" ( ");
 
-        node.getLeftOperand().accept(this);
-        final ProgramElementInfo left = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo left = this.visitAndPop(node.getLeftOperand(), maxStackSize, ProgramElementInfo.class);
         if (left != null) {
             infixExpression.addExpression(left);
             text.append(left.getText());
@@ -652,8 +652,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         text.append(operator.getText());
         text.append(" ");
 
-        node.getRightOperand().accept(this);
-        final ProgramElementInfo right = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo right = this.visitAndPop(node.getRightOperand(), maxStackSize, ProgramElementInfo.class);
 
         if (right != null) {
             infixExpression.addExpression(right);
@@ -663,8 +662,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         if (node.hasExtendedOperands()) {
             for (final Object operand : node.extendedOperands()) {
-                ((ASTNode) operand).accept(this);
-                final ProgramElementInfo operandExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                final ProgramElementInfo operandExpression = this.visitAndPop(operand, maxStackSize, ProgramElementInfo.class);
                 if (operandExpression != null) {
                     infixExpression.addExpression(operator);
                     infixExpression.addExpression(operandExpression);
@@ -691,25 +689,21 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
         text.append("new ");
 
-        node.getType().accept(this);
-        final ProgramElementInfo type = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo type = this.visitAndPop(node.getType(), maxStackSize, ProgramElementInfo.class);
 
         if (type != null) {
             arrayCreation.addExpression(type);
-            text.append(type.getText());
-            text.append("[]");
+            text.append(type.getText()).append("[]");
         }
 
         if (null != node.getInitializer()) {
-            node.getInitializer().accept(this);
-            final ProgramElementInfo initializer = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo initializer = this.visitAndPop(node.getInitializer(), maxStackSize, ProgramElementInfo.class);
             if (initializer != null) {
                 arrayCreation.addExpression(initializer);
                 text.append(arrayCreation);
             }
         }
         arrayCreation.setText(text.toString());
-
         return false;
     }
 
@@ -724,8 +718,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
         text.append("{");
         for (final Object expression : node.expressions()) {
-            ((ASTNode) expression).accept(this);
-            final ProgramElementInfo subexpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo subexpression = this.visitAndPop(expression, maxStackSize, ProgramElementInfo.class);
             if (subexpression != null) {
                 initializer.addExpression(subexpression);
                 text.append(subexpression.getText());
@@ -737,7 +730,6 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
         text.append("}");
         initializer.setText(text.toString());
-
         return false;
     }
 
@@ -747,9 +739,8 @@ public class ASTVisitor extends NaiveASTFlattener {
         final int endLine = this.getEndLineNumber(node);
         final ProgramElementInfo expression = new ExpressionInfo(ExpressionInfo.CATEGORY.Boolean,
                 node, startLine, endLine);
-        int maxStackSize = this.stack.push(expression);
+        this.stack.push(expression);
         expression.setText(node.toString());
-
         return false;
     }
 
@@ -763,8 +754,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getLeftHandSide().accept(this);
-        final ProgramElementInfo left = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo left = this.visitAndPop(node.getLeftHandSide(), maxStackSize, ProgramElementInfo.class);
         if (left != null) {
             assignment.addExpression(left);
             text.append(left.getText());
@@ -778,14 +768,12 @@ public class ASTVisitor extends NaiveASTFlattener {
         text.append(operator.getText());
         text.append(" ");
 
-        node.getRightHandSide().accept(this);
-        final ProgramElementInfo right = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo right = this.visitAndPop(node.getRightHandSide(), maxStackSize, ProgramElementInfo.class);
         if (right != null) {
             assignment.addExpression(right);
             text.append(right.getText());
         }
         assignment.setText(text.toString());
-
         return false;
     }
 
@@ -806,15 +794,13 @@ public class ASTVisitor extends NaiveASTFlattener {
         text.append(type.getText());
         text.append(")");
 
-        node.getExpression().accept(this);
-        final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
         if (expression != null) {
             cast.addExpression(expression);
             text.append(expression.getText());
         }
 
         cast.setText(text.toString());
-
         return false;
     }
 
@@ -834,8 +820,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         text.append(type.getText());
         text.append("(");
         for (final Object argument : node.arguments()) {
-            ((ASTNode) argument).accept(this);
-            final ProgramElementInfo argumentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo argumentExpression = this.visitAndPop(argument, maxStackSize, ProgramElementInfo.class);
             if (argumentExpression != null) {
                 classInstanceCreation.addExpression(argumentExpression);
                 text.append(argumentExpression.getText());
@@ -848,8 +833,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         text.append(")");
 
         if (null != node.getExpression()) {
-            node.getExpression().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (expression != null) {
                 classInstanceCreation.addExpression(expression);
                 text.append(expression.getText());
@@ -857,8 +841,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
 
         if (null != node.getAnonymousClassDeclaration()) {
-            node.getAnonymousClassDeclaration().accept(this);
-            final ClassInfo anonymousClass = this.stack.pop(maxStackSize, ClassInfo.class);
+            final ClassInfo anonymousClass = this.visitAndPop(node.getAnonymousClassDeclaration(), maxStackSize, ClassInfo.class);
             if (anonymousClass != null) {
                 classInstanceCreation.setAnonymousClassDeclaration(anonymousClass);
                 text.append(anonymousClass.getText());
@@ -866,7 +849,6 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
 
         classInstanceCreation.setText(text.toString());
-
         return false;
     }
 
@@ -879,32 +861,26 @@ public class ASTVisitor extends NaiveASTFlattener {
         int maxStackSize = this.stack.push(trinomial);
 
         final StringBuilder text = new StringBuilder();
-        
-        node.getExpression().accept(this);
-        final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
+        final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
         if (expression != null) {
             trinomial.addExpression(expression);
-            text.append(expression.getText());
-            text.append("? ");
+            text.append(expression.getText()).append(" ? ");
         }
 
-        node.getThenExpression().accept(this);
-        final ProgramElementInfo thenExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo thenExpression = this.visitAndPop(node.getThenExpression(), maxStackSize, ProgramElementInfo.class);
         if (thenExpression != null) {
             trinomial.addExpression(thenExpression);
-            text.append(thenExpression.getText());
-            text.append(": ");
+            text.append(thenExpression.getText()).append(" : ");
         }
 
-        node.getElseExpression().accept(this);
-        final ProgramElementInfo elseExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo elseExpression = this.visitAndPop(node.getElseExpression(), maxStackSize, ProgramElementInfo.class);
         if (elseExpression != null) {
             trinomial.addExpression(elseExpression);
             text.append(elseExpression.getText());
         }
         
         trinomial.setText(text.toString());
-
         return false;
     }
 
@@ -920,8 +896,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
         text.append("this(");
         for (final Object argument : node.arguments()) {
-            ((ASTNode) argument).accept(this);
-            final ProgramElementInfo argumentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo argumentExpression = this.visitAndPop(argument, maxStackSize, ProgramElementInfo.class);
             if (argumentExpression != null) {
                 invocation.addExpression(argumentExpression);
                 text.append(argumentExpression.getText());
@@ -935,16 +910,16 @@ public class ASTVisitor extends NaiveASTFlattener {
         invocation.setText(text.toString());
 
         this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
         final ProgramElementInfo ownerBlock = this.stack.peek();
         final StatementInfo statement = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.Expression,
 				node, startLine, endLine);
-        maxStackSize = this.stack.push(statement);
+        this.stack.push(statement);
 
         statement.addExpression(invocation);
 
         text.append(";");
         statement.setText(text.toString());
-
         return false;
     }
 
@@ -960,17 +935,14 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             final StringBuilder text = new StringBuilder();
 
-            node.getExpression().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (expression != null) {
                 statement.addExpression(expression);
-                text.append(expression.getText());
-                text.append(";");
+                text.append(expression.getText()).append(";");
             }
 
             statement.setText(text.toString());
         }
-
         return false;
     }
 
@@ -984,22 +956,18 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getLeftOperand().accept(this);
-        final ProgramElementInfo left = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo left = this.visitAndPop(node.getLeftOperand(), maxStackSize, ProgramElementInfo.class);
         if (left != null) {
             instanceofExpression.addExpression(left);
             text.append(left.getText());
         }
-        node.getRightOperand().accept(this);
-        final ProgramElementInfo right = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo right = this.visitAndPop(node.getRightOperand(), maxStackSize, ProgramElementInfo.class);
         if (right != null) {
             instanceofExpression.addExpression(right);
-            text.append(" instanceof ");
-            text.append(right.getText());
+            text.append(" instanceof ").append(right.getText());
         }
 
         instanceofExpression.setText(text.toString());
-
         return false;
     }
 
@@ -1014,26 +982,21 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
 
         if (null != node.getExpression()) {
-            node.getExpression().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (expression != null) {
                 methodInvocation.setQualifier(expression);
-                text.append(expression.getText());
-                text.append(".");
+                text.append(expression.getText()).append(".");
             }
         }
 
-        node.getName().accept(this);
-        final ProgramElementInfo name = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo name = this.visitAndPop(node.getName(), maxStackSize, ProgramElementInfo.class);
         if (name != null) {
             methodInvocation.addExpression(name);
-            text.append(name.getText());
-            text.append("(");
+            text.append(name.getText()).append("(");
         }
 
         for (final Object argument : node.arguments()) {
-            ((ASTNode) argument).accept(this);
-            final ProgramElementInfo argumentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo argumentExpression = this.visitAndPop(argument, maxStackSize, ProgramElementInfo.class);
             if (argumentExpression != null) {
                 methodInvocation.addExpression(argumentExpression);
                 text.append(argumentExpression.getText());
@@ -1070,8 +1033,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getExpression().accept(this);
-        final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
         if (expression != null) {
             parenthesizedExpression.addExpression(expression);
 
@@ -1080,7 +1042,6 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(")");
             parenthesizedExpression.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1098,8 +1059,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append("return");
 
             if (null != node.getExpression()) {
-                node.getExpression().accept(this);
-                final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
                 if (expression != null) {
                     returnStatement.addExpression(expression);
                     text.append(" ");
@@ -1126,8 +1086,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final StringBuilder text = new StringBuilder();
 
         if (null != node.getExpression()) {
-            node.getExpression().accept(this);
-            final ProgramElementInfo qualifier = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo qualifier = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (qualifier != null) {
                 superConstructorInvocation.setQualifier(qualifier);
                 text.append(qualifier.getText());
@@ -1138,8 +1097,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
 
         for (final Object argument : node.arguments()) {
-            ((ASTNode) argument).accept(this);
-            final ProgramElementInfo argumentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo argumentExpression = this.visitAndPop(argument, maxStackSize, ProgramElementInfo.class);
             if (argumentExpression != null) {
                 superConstructorInvocation.addExpression(argumentExpression);
                 text.append(argumentExpression.getText());
@@ -1156,7 +1114,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final ProgramElementInfo ownerBlock = this.stack.peek();
         final StatementInfo statement = new StatementInfo(ownerBlock,
                 StatementInfo.CATEGORY.Expression, node, startLine, endLine);
-        maxStackSize = this.stack.push(statement);
+        this.stack.push(statement);
 
         statement.addExpression(superConstructorInvocation);
         text.append(";");
@@ -1171,7 +1129,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final int endLine = this.getEndLineNumber(node);
         final ProgramElementInfo expression = new ExpressionInfo(
                 ExpressionInfo.CATEGORY.This, node, startLine, endLine);
-        int maxStackSize = this.stack.push(expression);
+        this.stack.push(expression);
         expression.setText("this");
 
         return false;
@@ -1194,8 +1152,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         text.append(" ");
 
         for (final Object fragment : node.fragments()) {
-            ((ASTNode) fragment).accept(this);
-            final ProgramElementInfo fragmentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo fragmentExpression = this.visitAndPop(fragment, maxStackSize, ProgramElementInfo.class);
             if (fragmentExpression != null) {
                 vdExpression.addExpression(fragmentExpression);
                 text.append(fragmentExpression.getText());
@@ -1203,7 +1160,6 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
 
         vdExpression.setText(text.toString());
-
         return false;
     }
 
@@ -1232,8 +1188,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             boolean anyExpression = false;
             for (final Object fragment : node.fragments()) {
                 anyExpression = true;
-                ((ASTNode) fragment).accept(this);
-                final ProgramElementInfo fragmentExpression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                final ProgramElementInfo fragmentExpression = this.visitAndPop(fragment, maxStackSize, ProgramElementInfo.class);
                 if (fragmentExpression != null) {
                     vdStatement.addExpression(fragmentExpression);
                     text.append(fragmentExpression.getText()).append(",");
@@ -1246,7 +1201,6 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(";");
             vdStatement.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1260,16 +1214,14 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        node.getName().accept(this);
-        final ProgramElementInfo name = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+        final ProgramElementInfo name = this.visitAndPop(node.getName(), maxStackSize, ProgramElementInfo.class);
         if (name != null) {
             vdFragment.addExpression(name);
             text.append(name.getText());
         }
 
         if (null != node.getInitializer()) {
-            node.getInitializer().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo expression = this.visitAndPop(node.getInitializer(), maxStackSize, ProgramElementInfo.class);
             if (expression != null) {
                 vdFragment.addExpression(expression);
 
@@ -1279,7 +1231,6 @@ public class ASTVisitor extends NaiveASTFlattener {
         }
 
         vdFragment.setText(text.toString());
-
         return false;
     }
 
@@ -1295,8 +1246,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             final StringBuilder text = new StringBuilder();
 
-            node.getBody().accept(this);
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
 
             text.append("do ");
             if (body != null) {
@@ -1304,11 +1254,10 @@ public class ASTVisitor extends NaiveASTFlattener {
                 text.append(body.getText());
             }
 
-            node.getExpression().accept(this);
-            final ProgramElementInfo condition = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo condition = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (condition != null) {
                 doBlock.setCondition(condition);
-                condition.setOwnerConditinalBlock(doBlock);
+                condition.setOwnerConditionalBlock(doBlock);
 
                 text.append("while (");
                 text.append(condition.getText());
@@ -1317,7 +1266,6 @@ public class ASTVisitor extends NaiveASTFlattener {
             
             doBlock.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1329,15 +1277,13 @@ public class ASTVisitor extends NaiveASTFlattener {
             final StringBuilder text = new StringBuilder();
             text.append("for (");
 
-            node.getParameter().accept(this);
-            final ProgramElementInfo parameter = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo parameter = this.visitAndPop(node.getParameter(), maxStackSize, ProgramElementInfo.class);
             if (parameter != null) {
                 text.append(parameter.getText());
                 text.append(" : ");
             }
 
-            node.getExpression().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (expression != null) {
                 text.append(expression.getText());
                 text.append(")");
@@ -1352,8 +1298,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             foreachBlock.addInitializer(expression);
             maxStackSize = this.stack.push(foreachBlock);
 
-            node.getBody().accept(this);
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
             if (body != null) {
                 foreachBlock.setStatement(body);
                 text.append(body.getText());
@@ -1379,8 +1324,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append("for (");
 
             for (final Object o : node.initializers()) {
-                ((ASTNode) o).accept(this);
-                final ExpressionInfo initializer = this.stack.pop(maxStackSize, ExpressionInfo.class);
+                final ExpressionInfo initializer = this.visitAndPop(o, maxStackSize, ExpressionInfo.class);
                 if (initializer != null) {
                     forBlock.addInitializer(initializer);
                     text.append(initializer.getText());
@@ -1394,11 +1338,10 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append("; ");
 
             if (null != node.getExpression()) {
-                node.getExpression().accept(this);
-                final ProgramElementInfo condition = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                final ProgramElementInfo condition = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
                 if (condition != null) {
                     forBlock.setCondition(condition);
-                    condition.setOwnerConditinalBlock(forBlock);
+                    condition.setOwnerConditionalBlock(forBlock);
                     text.append(condition.getText());
                 }
             }
@@ -1406,8 +1349,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append("; ");
 
             for (final Object o : node.updaters()) {
-                ((ASTNode) o).accept(this);
-                final ExpressionInfo updater = this.stack.pop(maxStackSize, ExpressionInfo.class);
+                final ExpressionInfo updater = this.visitAndPop(o, maxStackSize, ExpressionInfo.class);
                 if (updater != null) {
                     forBlock.addUpdater(updater);
                     text.append(updater.getText());
@@ -1420,8 +1362,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             text.append(")");
 
-            node.getBody().accept(this);
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
             if (body != null) {
                 forBlock.setStatement(body);
                 text.append(body.getText());
@@ -1445,21 +1386,19 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             final StringBuilder text = new StringBuilder();
             text.append("if (");
-            
-            node.getExpression().accept(this);
-            final ProgramElementInfo condition = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
+            final ProgramElementInfo condition = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (condition != null) {
                 ifBlock.setCondition(condition);
-                condition.setOwnerConditinalBlock(ifBlock);
+                condition.setOwnerConditionalBlock(ifBlock);
                 text.append(condition.getText());
-                condition.setText("if " + condition.getText()); //hj 加
+                condition.setText("if " + condition.getText());
             }
             
             text.append(") ");
 
             if (null != node.getThenStatement()) {
-                node.getThenStatement().accept(this);
-                final StatementInfo thenBody = this.stack.pop(maxStackSize, StatementInfo.class);
+                final StatementInfo thenBody = this.visitAndPop(node.getThenStatement(), maxStackSize, StatementInfo.class);
                 if (thenBody != null) {
                     ifBlock.setStatement(thenBody);
                     text.append(thenBody.getText());
@@ -1467,8 +1406,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             }
 
             if (null != node.getElseStatement()) {
-                node.getElseStatement().accept(this);
-                final StatementInfo elseBody = this.stack.pop(maxStackSize, StatementInfo.class);
+                final StatementInfo elseBody = this.visitAndPop(node.getElseStatement(), maxStackSize, StatementInfo.class);
                 if (elseBody != null) {
                     ifBlock.setElseStatement(elseBody);
                     text.append(elseBody.getText());
@@ -1477,7 +1415,6 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             ifBlock.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1494,11 +1431,10 @@ public class ASTVisitor extends NaiveASTFlattener {
             final StringBuilder text = new StringBuilder();
             text.append("switch (");
 
-            node.getExpression().accept(this);
-            final ProgramElementInfo condition = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+            final ProgramElementInfo condition = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (condition != null) {
                 switchBlock.setCondition(condition);
-                condition.setOwnerConditinalBlock(switchBlock);
+                condition.setOwnerConditionalBlock(switchBlock);
                 text.append(condition.getText());
             }
             
@@ -1506,8 +1442,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(lineSeparator);
 
             for (final Object o : node.statements()) {
-                ((ASTNode) o).accept(this);
-                final StatementInfo statement = this.stack.pop(maxStackSize, StatementInfo.class);
+                final StatementInfo statement = this.visitAndPop(o, maxStackSize, StatementInfo.class);
                 if (statement != null) {
                     switchBlock.addStatement(statement);
                     text.append(statement.getText());
@@ -1517,7 +1452,6 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             switchBlock.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1533,19 +1467,17 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             final StringBuilder text = new StringBuilder();
             text.append("synchronized (");
-            
-            node.getExpression().accept(this);
-            final ProgramElementInfo condition = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
+            final ProgramElementInfo condition = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (condition != null) {
                 synchronizedBlock.setCondition(condition);
-                condition.setOwnerConditinalBlock(synchronizedBlock);
+                condition.setOwnerConditionalBlock(synchronizedBlock);
                 text.append(condition.getText());
             }
             
             text.append(") ");
 
-            node.getBody().accept(this);
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
             if (body != null) {
                 synchronizedBlock.setStatement(body);
                 text.append(body.getText());
@@ -1553,7 +1485,6 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             synchronizedBlock.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1568,9 +1499,8 @@ public class ASTVisitor extends NaiveASTFlattener {
             int maxStackSize = this.stack.push(throwStatement);
 
             final StringBuilder text = new StringBuilder();
-            
-            node.getExpression().accept(this);
-            final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
+            final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             text.append("throw ");
             if (expression != null) {
                 throwStatement.addExpression(expression);
@@ -1580,7 +1510,6 @@ public class ASTVisitor extends NaiveASTFlattener {
             
             throwStatement.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1594,20 +1523,17 @@ public class ASTVisitor extends NaiveASTFlattener {
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(tryBlock);
 
-            node.getBody().accept(this);
-
             final StringBuilder text = new StringBuilder();
             text.append("try ");
 
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
             if (body != null) {
                 tryBlock.setStatement(body);
                 text.append(body.getText());
             }
 
             for (final Object o : node.catchClauses()) {
-                ((ASTNode) o).accept(this);
-                final StatementInfo catchBlock = this.stack.pop(maxStackSize, StatementInfo.class);
+                final StatementInfo catchBlock = this.visitAndPop(o, maxStackSize, StatementInfo.class);
                 if (catchBlock != null) {
                     tryBlock.addCatchStatement(catchBlock);
                     text.append(catchBlock.getText());
@@ -1615,8 +1541,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             }
 
             if (null != node.getFinally()) {
-                node.getFinally().accept(this);
-                final StatementInfo finallyBlock = this.stack.pop(maxStackSize, StatementInfo.class);
+                final StatementInfo finallyBlock = this.visitAndPop(node.getFinally(), maxStackSize, StatementInfo.class);
                 if (finallyBlock != null) {
                     tryBlock.setFinallyStatement(finallyBlock);
                     text.append(finallyBlock.getText());
@@ -1625,7 +1550,6 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             tryBlock.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1640,26 +1564,23 @@ public class ASTVisitor extends NaiveASTFlattener {
             int maxStackSize = this.stack.push(whileBlock);
 
             final StringBuilder text = new StringBuilder();
-            
-            node.getExpression().accept(this);
-            final ProgramElementInfo condition = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
+            final ProgramElementInfo condition = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             text.append("while (");
             if (condition != null) {
                 whileBlock.setCondition(condition);
-                condition.setOwnerConditinalBlock(whileBlock);
+                condition.setOwnerConditionalBlock(whileBlock);
                 text.append(condition.getText());
                 condition.setText("while " + condition.getText());
             }
             text.append(") ");
 
-            node.getBody().accept(this);
-            StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
             if (body != null) {
                 whileBlock.setStatement(body);
                 text.append(body.getText());
             }
 
-            //hj
             whileBlock.setText(text.toString());
         }
 
@@ -1680,8 +1601,7 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             for (Object exprObj : node.expressions()) {
                 if (exprObj instanceof ASTNode expr) {
-                    expr.accept(this);
-                    final ProgramElementInfo expression = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                    final ProgramElementInfo expression = this.visitAndPop(expr, maxStackSize, ProgramElementInfo.class);
                     if (expression != null) {
                         switchCase.addExpression(expression);
 
@@ -1693,11 +1613,9 @@ public class ASTVisitor extends NaiveASTFlattener {
                 }
             }
 
-
             text.append(":");
             switchCase.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1715,8 +1633,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append("break");
 
             if (null != node.getLabel()) {
-                node.getLabel().accept(this);
-                final ProgramElementInfo label = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                final ProgramElementInfo label = this.visitAndPop(node.getLabel(), maxStackSize, ProgramElementInfo.class);
                 if (label != null) {
                     breakStatement.addExpression(label);
 
@@ -1728,7 +1645,6 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(";");
             breakStatement.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1746,8 +1662,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append("continue");
 
             if (null != node.getLabel()) {
-                node.getLabel().accept(this);
-                final ProgramElementInfo label = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+                final ProgramElementInfo label = this.visitAndPop(node.getLabel(), maxStackSize, ProgramElementInfo.class);
                 if (label != null) {
                     continuekStatement.addExpression(label);
 
@@ -1769,7 +1684,6 @@ public class ASTVisitor extends NaiveASTFlattener {
 
         final String label = node.getLabel().toString();
         statement.setLabel(label);
-
         return false;
     }
 
@@ -1788,8 +1702,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(lineSeparator);
 
             for (final Object o : node.statements()) {
-                ((ASTNode) o).accept(this);
-                final StatementInfo statement = this.stack.pop(maxStackSize, StatementInfo.class);
+                final StatementInfo statement = this.visitAndPop(o, maxStackSize, StatementInfo.class);
                 if (statement != null) {
                     simpleBlock.addStatement(statement);
                     text.append(statement.getText());
@@ -1816,19 +1729,17 @@ public class ASTVisitor extends NaiveASTFlattener {
 
             final StringBuilder text = new StringBuilder();
             text.append("catch (");
-            
-            node.getException().accept(this);
-            final ProgramElementInfo exception = this.stack.pop(maxStackSize, ProgramElementInfo.class);
+
+            final ProgramElementInfo exception = this.visitAndPop(node.getException(), maxStackSize, ProgramElementInfo.class);
             if (exception != null) {
-                exception.setOwnerConditinalBlock(catchBlock);
+                exception.setOwnerConditionalBlock(catchBlock);
                 catchBlock.setCondition(exception);
                 text.append(exception.getText());
             }
             
             text.append(") ");
 
-            node.getBody().accept(this);
-            final StatementInfo body = this.stack.pop(maxStackSize, StatementInfo.class);
+            final StatementInfo body = this.visitAndPop(node.getBody(), maxStackSize, StatementInfo.class);
             if (body != null) {
                 catchBlock.setStatement(body);
             }
@@ -1836,7 +1747,6 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(catchBlock.getText());
             catchBlock.setText(text.toString());
         }
-
         return false;
     }
 
@@ -1849,7 +1759,7 @@ public class ASTVisitor extends NaiveASTFlattener {
         final String name = node.getName().toString();
         final VariableInfo variable = new VariableInfo(
                 VariableInfo.CATEGORY.LOCAL, type, name, node, startLine, endLine);
-        int maxStackSize = this.stack.push(variable);
+        this.stack.push(variable);
 
         final StringBuilder text = new StringBuilder();
         for (final Object modifier : node.modifiers()) {
@@ -1857,7 +1767,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             text.append(modifier);
             text.append(" ");
         }
-        //hj 加
+
         if (node.getParent() instanceof CatchClause) {
             text.append("catch ( ");
             text.append(type.getText());
@@ -1882,10 +1792,9 @@ public class ASTVisitor extends NaiveASTFlattener {
             final ProgramElementInfo ownerBlock = this.stack.peek();
             final StatementInfo emptyStatement = new StatementInfo(ownerBlock,
                     StatementInfo.CATEGORY.Empty, node, startLine, endLine);
-            int maxStackSize = this.stack.push(emptyStatement);
+            this.stack.push(emptyStatement);
             emptyStatement.setText(";");
         }
-
         return false;
     }
 

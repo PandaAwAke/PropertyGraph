@@ -15,13 +15,20 @@
 
 package com.propertygraph.pe;
 
+/**
+ * Describe the information of an operator in an expression (in the ast).
+ */
 public class OperatorInfo extends ProgramElementInfo {
 
-	final public String name;
+	/**
+	 * The token of the operator, such as "++", "="
+	 */
+	final public String token;
 
-	public OperatorInfo(final String name, final Object node, final int startLine, final int endLine) {
+	public OperatorInfo(final String token, final Object node, final int startLine, final int endLine) {
 		super(node, startLine, endLine);
-		this.name = name;
-		this.setText(name);
+		this.token = token;
+		this.setText(token);
 	}
+
 }

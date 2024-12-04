@@ -18,11 +18,25 @@ package com.propertygraph.pe;
 import lombok.Getter;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 
+/**
+ * Describe the information of a variable (in the ast).
+ */
+@Getter
 public class VariableInfo extends ProgramElementInfo {
 
-	@Getter
-    private CATEGORY category;
+	/**
+	 * The category of this variable.
+	 */
+    public CATEGORY category;
+
+	/**
+	 * The TypeInfo of this variable.
+	 */
 	final public TypeInfo type;
+
+	/**
+	 * The name of this variable.
+	 */
 	final public String name;
 
 	public VariableInfo(final CATEGORY category,
@@ -42,9 +56,13 @@ public class VariableInfo extends ProgramElementInfo {
 		this.category = category;
 	}
 
+	/**
+     * All supported variable types.
+     */
     public enum CATEGORY {
 		FIELD,
 		LOCAL,
 		PARAMETER,
 	}
+
 }
