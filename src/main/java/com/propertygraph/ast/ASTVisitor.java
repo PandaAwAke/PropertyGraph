@@ -1654,9 +1654,9 @@ public class ASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo continuekStatement = new StatementInfo(
+            final StatementInfo continueStatement = new StatementInfo(
                     ownerBlock, StatementInfo.CATEGORY.Continue, node, startLine, endLine);
-            int maxStackSize = this.stack.push(continuekStatement);
+            int maxStackSize = this.stack.push(continueStatement);
 
             final StringBuilder text = new StringBuilder();
             text.append("continue");
@@ -1664,7 +1664,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             if (null != node.getLabel()) {
                 final ProgramElementInfo label = this.visitAndPop(node.getLabel(), maxStackSize, ProgramElementInfo.class);
                 if (label != null) {
-                    continuekStatement.addExpression(label);
+                    continueStatement.addExpression(label);
 
                     text.append(" ");
                     text.append(label.getText());
@@ -1672,7 +1672,7 @@ public class ASTVisitor extends NaiveASTFlattener {
             }
 
             text.append(";");
-            continuekStatement.setText(text.toString());
+            continueStatement.setText(text.toString());
         }
         return false;
     }

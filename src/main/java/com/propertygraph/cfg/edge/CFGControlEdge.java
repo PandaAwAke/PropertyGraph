@@ -17,8 +17,14 @@ package com.propertygraph.cfg.edge;
 
 import com.propertygraph.cfg.node.CFGNode;
 
+/**
+ * CFG control edge. Usually used in conditional control (such as "If", "Switch")
+ */
 public class CFGControlEdge extends CFGEdge {
 
+	/**
+	 * The boolean value this edge represents, such as "true" for if-then, "false" for if-else
+	 */
 	final public boolean control;
 
 	CFGControlEdge(CFGNode<?> fromNode, final CFGNode<?> toNode, final boolean control) {

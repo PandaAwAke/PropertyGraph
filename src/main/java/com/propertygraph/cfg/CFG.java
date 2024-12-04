@@ -23,23 +23,52 @@ import lombok.Getter;
 
 import java.util.*;
 
+/**
+ * The Control Flow Graph of a block (usually a method).
+ */
 public class CFG {
 
+	/**
+	 * The ProgramElementInfo of this CFG.
+	 */
 	final public ProgramElementInfo core;
 
+	/**
+	 * The factory to generate CFG nodes.
+	 */
 	final private CFGNodeFactory nodeFactory;
 
+	/**
+	 * All nodes in the CFG.
+	 */
 	final protected SortedSet<CFGNode<? extends ProgramElementInfo>> nodes;
 
+	/**
+	 * The enter node of the CFG, usually the first statement in this block.
+	 */
 	@Getter
     protected CFGNode<? extends ProgramElementInfo> enterNode;
 
+	/**
+	 * The exit nodes of the CFG.
+	 */
 	final protected Set<CFGNode<? extends ProgramElementInfo>> exitNodes;
 
+	/**
+	 * Temporarily record the unhandled break statements (used for building CFG of a loop block).
+	 * It will be handled when leaving the loop CFG building.
+	 */
 	final protected LinkedList<CFGBreakStatementNode> unhandledBreakStatementNodes;
 
+	/**
+	 * Temporarily record the unhandled continue statements (used for building CFG of a loop block).
+	 * It will be handled when leaving the loop CFG building.
+	 */
 	final protected LinkedList<CFGContinueStatementNode> unhandledContinueStatementNodes;
 
+	/**
+	 * Mark whether the CFG was already built.
+	 */
 	protected boolean built;
 
 	public CFG(final ProgramElementInfo core, final CFGNodeFactory nodeFactory) {
@@ -67,6 +96,9 @@ public class CFG {
 		return new TreeSet<>(this.nodes);
 	}
 
+	/**
+	 * Remove all CFGSwitchCaseNodes in this CFG.
+	 */
 	public void removeSwitchCases() {
 		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes.iterator();
 		while (iterator.hasNext()) {
@@ -77,7 +109,7 @@ public class CFG {
 					for (final CFGNode<?> toNode : node.getForwardNodes()) {
 						final CFGEdge newEdge;
 						if (edge instanceof CFGControlEdge) {
-							newEdge = CFGEdge.makeEdge(fromNode, toNode, ((CFGControlEdge) edge).control);
+							newEdge = CFGEdge.makeControlEdge(fromNode, toNode, ((CFGControlEdge) edge).control);
 						} else {
 							newEdge = CFGEdge.makeEdge(fromNode, toNode);
 						}
@@ -91,6 +123,9 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * Remove all CFGJumpStatementNodes in this CFG.
+	 */
 	public void removeJumpStatements() {
 		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes.iterator();
 		while (iterator.hasNext()) {
@@ -109,6 +144,9 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * Build the CFG by the core.
+	 */
 	public void build() {
 		assert !this.built : "this CFG has already built.";
 		this.built = true;
@@ -127,13 +165,9 @@ public class CFG {
                 case Switch -> this.buildSwitchBlockCFG(coreStatement);
                 case TypeDeclaration -> {}
                 case Try -> this.buildTryBlockCFG(coreStatement);
-
-                //			case SimpleBlock: //hj add
-                //				this.buildSimpleBlockCFG(coreStatement); //hj add
-                //				break;
                 default -> {
                     final CFGNode<? extends ProgramElementInfo> node = this.nodeFactory.makeNormalNode(coreStatement);
-                    this.enterNode = node;//在不断的更新
+                    this.enterNode = node;	// This will be handled by SequentialCFGs to select the first enterNode.
                     if (StatementInfo.CATEGORY.Break == coreStatement.getCategory()) {
                         this.unhandledBreakStatementNodes.addFirst((CFGBreakStatementNode) node);
                     } else if (StatementInfo.CATEGORY.Continue == coreStatement.getCategory()) {
@@ -181,7 +215,7 @@ public class CFG {
 			conditionNode.addBackwardEdge(edge);
 		}
 
-		final CFGEdge edge = CFGEdge.makeEdge(conditionNode, sequentialCFGs.enterNode, true);
+		final CFGEdge edge = CFGEdge.makeControlEdge(conditionNode, sequentialCFGs.enterNode, true);
 		conditionNode.addForwardEdge(edge);
 		sequentialCFGs.enterNode.addBackwardEdge(edge);
 
@@ -219,7 +253,7 @@ public class CFG {
 		}
 
 		{
-			final CFGEdge controlEdge = CFGEdge.makeEdge(conditionNode, sequentialCFGs.enterNode, true);
+			final CFGEdge controlEdge = CFGEdge.makeControlEdge(conditionNode, sequentialCFGs.enterNode, true);
 			conditionNode.addForwardEdge(controlEdge);
 			sequentialCFGs.enterNode.addBackwardEdge(controlEdge);
 		}
@@ -262,7 +296,7 @@ public class CFG {
 		this.unhandledContinueStatementNodes.addAll(sequentialCFGs.unhandledContinueStatementNodes);
 
 		{
-			final CFGEdge edge = CFGEdge.makeEdge(conditionNode, sequentialCFGs.enterNode, true);
+			final CFGEdge edge = CFGEdge.makeControlEdge(conditionNode, sequentialCFGs.enterNode, true);
 			conditionNode.addForwardEdge(edge);
 			sequentialCFGs.enterNode.addBackwardEdge(edge);
 		}
@@ -301,7 +335,7 @@ public class CFG {
 			}
 
 			{
-				final CFGEdge edge = CFGEdge.makeEdge(conditionNode, elseCFG.enterNode, false);
+				final CFGEdge edge = CFGEdge.makeControlEdge(conditionNode, elseCFG.enterNode, false);
 				conditionNode.addForwardEdge(edge);
 				elseCFG.enterNode.addBackwardEdge(edge);
 			}
@@ -342,7 +376,7 @@ public class CFG {
 
             switch (subStatement.getCategory()) {
                 case Case -> {
-                    final CFGEdge edge = CFGEdge.makeEdge(conditionNode, subCFG.enterNode, true);
+                    final CFGEdge edge = CFGEdge.makeControlEdge(conditionNode, subCFG.enterNode, true);
                     conditionNode.addForwardEdge(edge);
                     subCFG.enterNode.addBackwardEdge(edge);
                 }
@@ -412,6 +446,9 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * Remove all pseudo nodes (usually occurs when this.core == null) in the CFG.
+	 */
 	private void removePseudoNodes() {
 		final Iterator<CFGNode<? extends ProgramElementInfo>> iterator = this.nodes.iterator();
 		while (iterator.hasNext()) {
@@ -451,6 +488,10 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * Handle unhandledBreakStatementNodes to add CFG edges for loops.
+	 * @param statement The loop statement
+	 */
 	private void connectCFGBreakStatementNode(final StatementInfo statement) {
 		final Iterator<CFGBreakStatementNode> iterator = this.unhandledBreakStatementNodes.iterator();
 		while (iterator.hasNext()) {
@@ -470,6 +511,10 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * Handle unhandledContinueStatementNodes to add CFG edges for loops.
+	 * @param statement The loop statement
+	 */
 	private void connectCFGContinueStatementNode(final StatementInfo statement,
 												 final CFGNode<? extends ProgramElementInfo> destinationNode) {
 		final Iterator<CFGContinueStatementNode> iterator = this.unhandledContinueStatementNodes.iterator();
@@ -493,6 +538,11 @@ public class CFG {
 
 	}
 
+
+	/**
+	 * A series of CFG. Usually represents CFGs of multiple statements.
+	 * This SequentialCFGs can connect these sequential CFGs together.
+	 */
 	private class SequentialCFGs extends CFG {
 
 		final List<? extends ProgramElementInfo> elements;
@@ -540,13 +590,33 @@ public class CFG {
 		}
 	}
 
+	/**
+	 * Get reachable nodes in this CFG.
+	 * @return The reachable nodes in this CFG
+	 */
+	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes() {
+		return getReachableNodes(this.enterNode);
+	}
+
+	/**
+	 * Get reachable nodes in this CFG with a startNode.
+	 * @param startNode The start node
+	 * @return The reachable nodes in this CFG
+	 */
 	public final SortedSet<CFGNode<? extends ProgramElementInfo>> getReachableNodes(final CFGNode<? extends ProgramElementInfo> startNode) {
-		assert null != startNode : "\"startNode\" is null.";
+		if (startNode == null) {
+			return new TreeSet<>();
+		}
 		final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes = new TreeSet<>();
 		this.getReachableNodes(startNode, nodes);
 		return nodes;
 	}
 
+	/**
+	 * Real function to calculate reachable nodes.
+	 * @param startNode The start node
+	 * @param nodes A set to record reachable nodes
+	 */
 	private void getReachableNodes(final CFGNode<? extends ProgramElementInfo> startNode,
 								   final SortedSet<CFGNode<? extends ProgramElementInfo>> nodes) {
 		assert null != startNode : "\"startNode\" is null.";
@@ -561,4 +631,5 @@ public class CFG {
 			this.getReachableNodes(node, nodes);
 		}
 	}
+
 }

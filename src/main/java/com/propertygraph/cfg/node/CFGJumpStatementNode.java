@@ -17,6 +17,9 @@ package com.propertygraph.cfg.node;
 
 import com.propertygraph.pe.StatementInfo;
 
+/**
+ * CFG jump statement node, including: Continue, Break.
+ */
 abstract public class CFGJumpStatementNode extends CFGStatementNode {
 
 	CFGJumpStatementNode(final StatementInfo jumpStatement) {

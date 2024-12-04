@@ -17,6 +17,9 @@ package com.propertygraph.cfg.edge;
 
 import com.propertygraph.cfg.node.CFGNode;
 
+/**
+ * CFG Jump edge. Usually describes a CFGBreakStatementNode or CFGContinueStatementNode jump.
+ */
 public class CFGJumpEdge extends CFGEdge {
 
 	CFGJumpEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {

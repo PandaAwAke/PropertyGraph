@@ -17,6 +17,10 @@ package com.propertygraph.cfg.node;
 
 import com.propertygraph.pe.ProgramElementInfo;
 
+/**
+ * CFG Control Node.
+ * Usually including: Try, Catch, Synchronized, Loops, TypeDeclaration, If, Switch.
+ */
 public class CFGControlNode extends CFGNode<ProgramElementInfo> {
 
 	public CFGControlNode(final ProgramElementInfo expression) {

@@ -24,15 +24,25 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * The factory to generate CFG nodes.
+ */
 public class CFGNodeFactory {
 
-    private final ConcurrentMap<ProgramElementInfo, CFGNode<? extends ProgramElementInfo>> elementToNodeMap;
+    /**
+     * A cache for the mapping from ProgramElementInfo to CFGNode.
+     */
+    private final ConcurrentMap<ProgramElementInfo, CFGNode<? extends ProgramElementInfo>> elementToNodeMap = new ConcurrentHashMap<>();
 
-    public CFGNodeFactory() {
-        this.elementToNodeMap = new ConcurrentHashMap<>();
-    }
+    public CFGNodeFactory() {}
 
     //非catch、for、Do、foreach、if之类的结点，处理break、continue、case以及其他结点
+
+    /**
+     * Make normal CFG node for "non-control" program elements, including Break, Continue, Case and other normal elements.
+     * @param element "Non-control" program elements
+     * @return CFGNormalNode or CFGPseudoNode
+     */
     public synchronized CFGNode<? extends ProgramElementInfo> makeNormalNode(final ProgramElementInfo element) {
         if (null == element) {
             return new CFGPseudoNode();
@@ -55,10 +65,14 @@ public class CFGNodeFactory {
                 return null;
             }
         }
-
         return node;
     }
 
+    /**
+     * Make CFGControlNode for "control" elements including: Try, Catch, Synchronized, Loops, TypeDeclaration, If, Switch.
+     * @param expression "Control" program elements
+     * @return CFGControlNode or CFGPseudoNode
+     */
     public synchronized CFGNode<? extends ProgramElementInfo> makeControlNode(final ProgramElementInfo expression) {
         if (null == expression) {
             return new CFGPseudoNode();
@@ -72,15 +86,29 @@ public class CFGNodeFactory {
         return node;
     }
 
+    /**
+     * Get the CFGNode of the program element in the cache.
+     * @param element ProgramElement
+     * @return The CFGNode of the program element, or null if it does not exist in the cache
+     */
     public CFGNode<? extends ProgramElementInfo> getNode(final ProgramElementInfo element) {
         assert null != element : "\"element\" is null.";
         return this.elementToNodeMap.get(element);
     }
 
+    /**
+     * Remove the CFGNode of the program element in the cache.
+     * @param element ProgramElement
+     * @return true if succeeded
+     */
     public synchronized boolean removeNode(final ProgramElementInfo element) {
         return null != this.elementToNodeMap.remove(element);
     }
 
+    /**
+     * Get all CFGNodes in the cache.
+     * @return The CFGNodes in the cache
+     */
     public SortedSet<CFGNode<? extends ProgramElementInfo>> getAllNodes() {
         return new TreeSet<>(this.elementToNodeMap.values());
     }

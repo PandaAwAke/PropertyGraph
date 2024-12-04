@@ -263,7 +263,7 @@ public class PDG implements Comparable<PDG> {
 
         if (!this.cfg.isEmpty()) {
             final Set<CFGNode<?>> unreachableNodes = new HashSet<>(this.cfg.getAllNodes());
-            unreachableNodes.removeAll(this.cfg.getReachableNodes(this.cfg.getEnterNode()));
+            unreachableNodes.removeAll(this.cfg.getReachableNodes());
             for (final CFGNode<?> unreachableNode : unreachableNodes) {
                 this.buildDependence(unreachableNode, checkedNodes);
             }

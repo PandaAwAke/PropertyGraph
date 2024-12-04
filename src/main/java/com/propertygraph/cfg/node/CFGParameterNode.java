@@ -17,6 +17,9 @@ package com.propertygraph.cfg.node;
 
 import com.propertygraph.pe.VariableInfo;
 
+/**
+ * The CFG node for parameters of a method.
+ */
 public class CFGParameterNode extends CFGNode<VariableInfo> {
 
 	private CFGParameterNode(final VariableInfo variable) {

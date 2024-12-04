@@ -20,6 +20,10 @@ import com.propertygraph.pe.ProgramElementInfo;
 
 import java.util.*;
 
+/**
+ * CFG Node.
+ * @param <T> The ProgramElementInfo type associated with this node.
+ */
 public abstract class CFGNode<T extends ProgramElementInfo> implements Comparable<CFGNode<? extends ProgramElementInfo>> {
 
     protected final SortedSet<CFGEdge> forwardEdges;
@@ -109,6 +113,10 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements Comparabl
         return false;
     }
 
+    /**
+     * Remove this CFG node.
+     * This will also remove all backward and forward edges for the neighbors of this node.
+     */
     public void remove() {
         final SortedSet<CFGEdge> backwardEdges = this.getBackwardEdges();
         final SortedSet<CFGEdge> forwardEdges = this.getForwardEdges();

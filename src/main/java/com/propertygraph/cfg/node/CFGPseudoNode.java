@@ -18,8 +18,14 @@ package com.propertygraph.cfg.node;
 import com.propertygraph.cfg.node.CFGPseudoNode.PseudoElement;
 import com.propertygraph.pe.ProgramElementInfo;
 
+/**
+ * The pseudo (fake) node. This can be used to represent null values.
+ */
 public class CFGPseudoNode extends CFGNode<PseudoElement> {
 
+	/**
+	 * The pseudo (fake) program element.
+	 */
 	public static class PseudoElement extends ProgramElementInfo {
 		PseudoElement() {
 			super(null, 0, 0);
@@ -29,4 +35,5 @@ public class CFGPseudoNode extends CFGNode<PseudoElement> {
 	public CFGPseudoNode() {
 		super(new PseudoElement());
 	}
+
 }

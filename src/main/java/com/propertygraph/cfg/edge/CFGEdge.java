@@ -22,10 +22,19 @@ import com.propertygraph.cfg.node.CFGNode;
 import com.propertygraph.cfg.node.CFGPseudoNode;
 import com.propertygraph.pe.ProgramElementInfo;
 
+/**
+ * Abstract CFG edge class.
+ */
 public abstract class CFGEdge implements Comparable<CFGEdge> {
 
-    static public CFGEdge makeEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode, boolean control) {
-
+    /**
+     * Make a new CFG control edge.
+     * @param fromNode The source node (CFGControlNode or CFGPseudoNode)
+     * @param toNode The target node
+     * @param control Boolean value on the CFGControlEdge
+     * @return The new CFG edge
+     */
+    static public CFGEdge makeControlEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode, boolean control) {
         assert null != fromNode : "\"fromNode\" is null.";
         assert null != toNode : "\"toNode\" is null.";
 
@@ -36,19 +45,21 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
             return new CFGControlEdge(fromNode, toNode, control);
         }
 
-        if (fromNode instanceof CFGPseudoNode) {
-            return new CFGNormalEdge(fromNode, toNode);
-        }
-
-        return null;
+        return new CFGNormalEdge(fromNode, toNode);
     }
 
+    /**
+     * Make a new CFG edge (generally).
+     * @param fromNode The source node
+     * @param toNode The target node
+     * @return The new CFG edge
+     */
     static public CFGEdge makeEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
         assert null != fromNode : "\"fromNode\" is null.";
         assert null != toNode : "\"toNode\" is null.";
 
         if (fromNode instanceof CFGControlNode) {
-            return makeEdge(fromNode, toNode, false);
+            return makeControlEdge(fromNode, toNode, false);
         } else if (fromNode instanceof CFGBreakStatementNode
                 || fromNode instanceof CFGContinueStatementNode) {
             return new CFGJumpEdge(fromNode, toNode);
@@ -57,12 +68,21 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
         }
     }
 
+    /**
+     * Make a new CFG jump edge.
+     * @param fromNode The source node (usually CFGBreakStatementNode or CFGContinueStatementNode)
+     * @param toNode The target node
+     * @return The new CFG edge
+     */
     static public CFGEdge makeJumpEdge(final CFGNode<?> fromNode, final CFGNode<?> toNode) {
         assert null != fromNode : "\"fromNode\" is null.";
         assert null != toNode : "\"toNode\" is null.";
 
         return new CFGJumpEdge(fromNode, toNode);
     }
+
+
+    // --------------------------- Fields & Methods ---------------------------
 
     public final CFGNode<? extends ProgramElementInfo> fromNode;
     public final CFGNode<? extends ProgramElementInfo> toNode;
@@ -111,8 +131,6 @@ public abstract class CFGEdge implements Comparable<CFGEdge> {
         if (0 != fromOrder) {
             return fromOrder;
         }
-        //hj add
-
 
         final int toOrder = this.toNode.compareTo(edge.toNode);
         if (0 != toOrder) {

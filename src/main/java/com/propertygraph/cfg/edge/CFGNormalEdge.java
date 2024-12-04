@@ -17,6 +17,9 @@ package com.propertygraph.cfg.edge;
 
 import com.propertygraph.cfg.node.CFGNode;
 
+/**
+ * CFG normal edge.
+ */
 public class CFGNormalEdge extends CFGEdge {
 
 	CFGNormalEdge(CFGNode<?> fromNode, final CFGNode<?> toNode) {
