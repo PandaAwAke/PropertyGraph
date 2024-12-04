@@ -16,7 +16,6 @@
 package com.propertygraph.pe;
 
 import lombok.Getter;
-import org.eclipse.jdt.core.dom.MethodDeclaration;
 
 import java.util.*;
 
@@ -87,7 +86,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getAssignedVariables());
 		}
-		if (lambda) {
+		if (lambda && lambdaExpression != null) {
 			variables.addAll(lambdaExpression.getAssignedVariables());
 		}
 		return variables;
@@ -99,7 +98,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 		for (final StatementInfo statement : this.statements) {
 			variables.addAll(statement.getReferencedVariables());
 		}
-		if (lambda) {
+		if (lambda && lambdaExpression != null) {
 			variables.addAll(lambdaExpression.getReferencedVariables());
 		}
 		return variables;

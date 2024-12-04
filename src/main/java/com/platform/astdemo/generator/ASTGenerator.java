@@ -36,7 +36,7 @@ public class ASTGenerator {
 	 * @param srcStr
 	 */
 	public void parse(String srcStr) {
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
 		parser.setSource(srcStr.toCharArray());
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 
