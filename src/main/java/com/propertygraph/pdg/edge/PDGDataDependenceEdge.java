@@ -17,8 +17,14 @@ package com.propertygraph.pdg.edge;
 
 import com.propertygraph.pdg.node.PDGNode;
 
+/**
+ * PDG data dependency edge.
+ */
 public class PDGDataDependenceEdge extends PDGEdge {
 
+	/**
+	 * A representative string for this edge (usually a variable name)
+	 */
 	final public String data;
 
 	public PDGDataDependenceEdge(final PDGNode<?> fromNode, final PDGNode<?> toNode, final String data) {

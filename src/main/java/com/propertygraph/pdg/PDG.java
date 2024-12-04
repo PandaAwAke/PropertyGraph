@@ -28,37 +28,79 @@ import com.propertygraph.pe.*;
 
 import java.util.*;
 
+/**
+ * The Program Dependency Graph of a method.
+ */
 public class PDG implements Comparable<PDG> {
 
+    /**
+     * The factory to generate PDG nodes.
+     */
     final private PDGNodeFactory pdgNodeFactory;
+
+    /**
+     * The factory to generate CFG nodes.
+     */
     final private CFGNodeFactory cfgNodeFactory;
 
+    /**
+	 * The enter node of the PDG.
+     * Note that unlike CFG, the enterNode here is usually a fake entry node.
+	 */
     final public PDGMethodEnterNode enterNode;
+
+    /**
+     * The exit nodes of the PDG. This is the same as the CFG.
+     */
     final private SortedSet<PDGNode<?>> exitNodes;
+
+    /**
+     * The parameter nodes of the PDG. Usually represents parameters of the method.
+     */
     final private List<PDGParameterNode> parameterNodes;
 
+    /**
+     * The MethodInfo related to this PDG (like CFG.core).
+     */
     final public MethodInfo unit;
 
-    final public boolean buildControlDependence;
-    final public boolean buildDataDependence;
-    final public boolean buildExecutionDependence;
-
-    final public int controlDependencyDistance;
-    final public int dataDependencyDistance;
-    final public int executionDependencyDistance;
-
-
+    // ------------------- Control dependency edges -------------------
     /**
-     * If this is false, then the dependency propagation will be short-circuited.
-     * i.e. new defs will override the old defs, then eliminating the edge from the old defs to the CFG node.
+     * Whether PDG should build control dependency edges, such as if-then-else condition edges.
      */
-    final public boolean addAllPossibleDefsWhenBuildingDataDependence = false;
+    final public boolean buildControlDependence;
     /**
-     * If this is true, then for every node, there will be an edge from the enter node to it.
+     * If this is true, then for every node, there'll be a "true" control edge from the enter node to it.
      */
     final public boolean buildControlDependenceFromEnterToAllNodes = false;
+    /**
+     * If this is true, then there'll be control edges from the enter node to parameter nodes.
+     */
+    final public boolean buildControlDependenceFromEnterToParameterNodes = false;
 
 
+    // ------------------- Data dependency edges -------------------
+    /**
+     * Whether PDG should build data dependency edges.
+     */
+    final public boolean buildDataDependence;
+
+    /**
+     * If this is true, then the dependency propagation will be short-circuited,
+     * i.e. new defs will override the old defs, thereby avoiding the continued propagation of the old defs.
+     */
+    final public boolean avoidDefPropagationWhenBuildingDataDependence = true;
+
+    // ------------------- Execution dependency edges -------------------
+    /**
+     * Whether PDG should build execution dependency edges, such as CFG normal edges.
+     */
+    final public boolean buildExecutionDependence;
+
+
+    /**
+     * The CFG object used for building PDG.
+     */
     private CFG cfg;
 
     public PDG(final MethodInfo unit,
@@ -66,10 +108,7 @@ public class PDG implements Comparable<PDG> {
                final CFGNodeFactory cfgNodeFactory,
                final boolean buildControlDependence,
                final boolean buildDataDependence,
-               final boolean buildExecutionDependence,
-               final int controlDependencyDistance,
-               final int dataDependencyDistance,
-               final int executionDependencyDistance) {
+               final boolean buildExecutionDependence) {
 
         assert null != unit : "\"unit\" is null";
         assert null != pdgNodeFactory : "\"pdgNodeFactory\" is null";
@@ -91,22 +130,6 @@ public class PDG implements Comparable<PDG> {
         this.buildControlDependence = buildControlDependence;
         this.buildDataDependence = buildDataDependence;
         this.buildExecutionDependence = buildExecutionDependence;
-
-        this.controlDependencyDistance = controlDependencyDistance;
-        this.dataDependencyDistance = dataDependencyDistance;
-        this.executionDependencyDistance = executionDependencyDistance;
-    }
-
-    public PDG(final MethodInfo unit,
-			   final PDGNodeFactory pdgNodeFactory,
-               final CFGNodeFactory cfgNodeFactory,
-               final boolean buildControlDependency,
-               final boolean buildDataDependency,
-               final boolean buildExecutionDependency) {
-
-		this(unit, pdgNodeFactory, cfgNodeFactory, buildControlDependency,
-				buildDataDependency, buildExecutionDependency,
-				Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     }
 
     public PDG(final MethodInfo unit,
@@ -151,7 +174,6 @@ public class PDG implements Comparable<PDG> {
 
     private void getAllNodes(final PDGNode<?> node,
                              final SortedSet<PDGNode<?>> nodes) {
-
         assert null != node : "\"node\" is null.";
         assert null != nodes : "\"nodes\" is null.";
 
@@ -170,9 +192,6 @@ public class PDG implements Comparable<PDG> {
 
     public final SortedSet<PDGEdge> getAllEdges() {
         final SortedSet<PDGEdge> edges = new TreeSet<>();
-//		for (final PDGEdge edge : this.enterNode.getForwardEdges()) {
-//			this.getAllEdges(edge, edges);
-//		}
 
         final SortedSet<PDGNode<?>> nodes = this.getAllNodes();
         for (final PDGNode<?> node : nodes) {
@@ -183,49 +202,33 @@ public class PDG implements Comparable<PDG> {
         return edges;
     }
 
-    private void getAllEdges(final PDGEdge edge, final SortedSet<PDGEdge> edges) {
-        assert null != edge : "\"edge\" is null.";
-        assert null != edges : "\"edges\" is null.";
-
-        if (edges.contains(edge)) {
-            return;
-        }
-
-        edges.add(edge);
-        for (final PDGEdge backwardEdge : edge.fromNode.getBackwardEdges()) {
-            this.getAllEdges(backwardEdge, edges);
-        }
-        for (final PDGEdge forwardEdge : edge.fromNode.getForwardEdges()) {
-            this.getAllEdges(forwardEdge, edges);
-        }
-        for (final PDGEdge backwardEdge : edge.toNode.getBackwardEdges()) {
-            this.getAllEdges(backwardEdge, edges);
-        }
-        for (final PDGEdge forwardEdge : edge.toNode.getForwardEdges()) {
-            this.getAllEdges(forwardEdge, edges);
-        }
-    }
-
+    /**
+     * Build the PDG.
+     */
     public void build() {
         this.cfg = new CFG(this.unit, this.cfgNodeFactory);
         this.cfg.build();
 //        this.cfg.removeSwitchCases(); //switch结点
 //        this.cfg.removeJumpStatements(); //Jump结点的打扰
 
-        if (this.buildControlDependence && buildControlDependenceFromEnterToAllNodes) { //控制依赖
-            this.buildControlDependence(this.enterNode, unit); // enter与各大结点之间的关系
+        if (this.buildControlDependence) { //控制依赖
+            if (this.buildControlDependenceFromEnterToAllNodes) {
+                // Add control edges from "entry" to all nodes (why?)
+                this.buildControlDependence(this.enterNode, unit); // enter与各大结点之间的关系
+            }
 
-            /*hj*/
-//			for (final PDGParameterNode parameterNode : this.parameterNodes) {
-//				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
-//						this.enterNode, parameterNode, true);
-//				this.enterNode.addForwardEdge(edge);
-//				parameterNode.addBackwardEdge(edge);
-//			}
-
+            if (this.buildControlDependenceFromEnterToParameterNodes) {
+                // Add control edges from "entry" to all parameter nodes (why?)
+    			for (final PDGParameterNode parameterNode : this.parameterNodes) {
+    				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
+    						this.enterNode, parameterNode, true);
+    				this.enterNode.addForwardEdge(edge);
+    				parameterNode.addBackwardEdge(edge);
+    			}
+            }
         }
 
-        // cfg 执行流
+        // ---------------- Build dependency edges for "entry" ----------------
         if (this.buildExecutionDependence) {
             if (!this.cfg.isEmpty()) {
                 final PDGNode<?> node = this.pdgNodeFactory.makeNode(this.cfg.getEnterNode());
@@ -236,31 +239,37 @@ public class PDG implements Comparable<PDG> {
         }
 
         if (this.buildDataDependence) {
+            // Dependency edges: parameters to "CFG entry" (the first statement of the method)
             for (final PDGParameterNode parameterNode : this.parameterNodes) {
                 if (!this.cfg.isEmpty()) {
                     this.buildDataDependence(this.cfg.getEnterNode(), parameterNode, parameterNode.core.name, new HashSet<>());
                 }
             }
 
-            /*hj*/
+            // Dependency edges: from "PDG entry" (a fake node) to parameters
             for (final PDGParameterNode parameterNode : this.parameterNodes) {
                 final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(this.enterNode, parameterNode, parameterNode.core.name);
                 this.enterNode.addForwardEdge(edge);
                 parameterNode.addBackwardEdge(edge);
             }
-
         }
 
+        // ---------------- Build dependency edges by CFG ----------------
+        // This set is used to avoid revisiting the same node
         final Set<CFGNode<?>> checkedNodes = new HashSet<>();
+
+        // Build the dependency edges: reachable from the "CFG entry" (the first statement of the method)
         if (!this.cfg.isEmpty()) {
-            this.buildDependence(this.cfg.getEnterNode(), checkedNodes);  // ？ 作用 检查结点之间的关系 各种依赖关系
+            this.buildDependence(this.cfg.getEnterNode(), checkedNodes);
         }
 
+        // Set PDG exitNodes from CFG exitNodes
         for (final CFGNode<?> cfgExitNode : this.cfg.getExitNodes()) {
             final PDGNode<?> pdgExitNode = this.pdgNodeFactory.makeNode(cfgExitNode);
             this.exitNodes.add(pdgExitNode);
         }
 
+        // Build the dependency edges: unreachable in the CFG
         if (!this.cfg.isEmpty()) {
             final Set<CFGNode<?>> unreachableNodes = new HashSet<>(this.cfg.getAllNodes());
             unreachableNodes.removeAll(this.cfg.getReachableNodes());
@@ -270,6 +279,11 @@ public class PDG implements Comparable<PDG> {
         }
     }
 
+    /**
+     * Build all dependency edges from a CFG node.
+     * @param cfgNode CFGNode
+     * @param checkedNodes The visited nodes set used for avoiding revisiting
+     */
     private void buildDependence(final CFGNode<?> cfgNode,
                                  final Set<CFGNode<?>> checkedNodes) {
         assert null != cfgNode : "\"cfgNode\" is null.";
@@ -284,7 +298,7 @@ public class PDG implements Comparable<PDG> {
         final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode); // PDGNode
         if (this.buildDataDependence) {
             Set<String> variables = pdgNode.core.getAssignedVariables();
-            for (final String variable : pdgNode.core.getAssignedVariables()) {
+            for (final String variable : variables) {
                 for (final CFGEdge edge : cfgNode.getForwardEdges()) {
                     final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
                     this.buildDataDependence(edge.toNode, pdgNode, variable, checkedNodesForDefinedVariables);
@@ -301,12 +315,9 @@ public class PDG implements Comparable<PDG> {
         if (this.buildExecutionDependence) {
             for (final CFGNode<?> toCFGNode : cfgNode.getForwardNodes()) {
                 final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(toCFGNode);
-                final int distance = Math.abs(toPDGNode.core.startLine - pdgNode.core.startLine) + 1;
-                if (distance <= this.executionDependencyDistance) {
-                    final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(pdgNode, toPDGNode);
-                    pdgNode.addForwardEdge(edge);
-                    toPDGNode.addBackwardEdge(edge);
-                }
+                final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(pdgNode, toPDGNode);
+                pdgNode.addForwardEdge(edge);
+                toPDGNode.addBackwardEdge(edge);
             }
         }
 
@@ -315,6 +326,14 @@ public class PDG implements Comparable<PDG> {
         }
     }
 
+    /**
+     * Try to build a data dependency edge (associated with a variable) from "fromPDGNode" to PDG node of "cfgNode".
+     * If "cfgNode" uses the variable defined by "fromPDGNode", then the edge will be added.
+     * @param cfgNode The CFG node which might use the variable
+     * @param fromPDGNode The PDG node which defined the variable
+     * @param variable Defined variable (originally defined in "fromPDGNode")
+     * @param checkedCFGNodes The visited nodes set used for avoiding revisiting
+     */
     private void buildDataDependence(final CFGNode<?> cfgNode,
                                      final PDGNode<?> fromPDGNode, final String variable,
                                      final Set<CFGNode<?>> checkedCFGNodes) {
@@ -328,24 +347,17 @@ public class PDG implements Comparable<PDG> {
         } else {
             checkedCFGNodes.add(cfgNode);
         }
-//		System.out.println("1: " + cfgNode.core.getAssignedVariables());
-//		System.out.println("2: " + cfgNode.core.getReferencedVariables());
-//		System.out.println("3: " + cfgNode.getText());
-        //cfgNode.core.getReferencedVariables();
 
-
-        if (cfgNode.core.getReferencedVariables().contains(variable)) {   //hj 删除
-            //if (cfgNode.core.getReferencedVariables().contains(variable) || cfgNode.core.getAssignedVariables().contains(variable)){
+        // If "cfgNode" uses the variable, add the edge
+        if (cfgNode.core.getReferencedVariables().contains(variable)) {
             final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
-            final int distance = Math.abs(toPDGNode.core.startLine - fromPDGNode.core.startLine) + 1;
-            if (distance <= this.dataDependencyDistance) {
-                final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable);
-                fromPDGNode.addForwardEdge(edge);
-                toPDGNode.addBackwardEdge(edge);
-            }
+            final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable);
+            fromPDGNode.addForwardEdge(edge);
+            toPDGNode.addBackwardEdge(edge);
         }
 
-        if (!addAllPossibleDefsWhenBuildingDataDependence) {
+        if (this.avoidDefPropagationWhenBuildingDataDependence) {
+            // Short-circuit: avoid the old defs continuing to propagate forward
             if (cfgNode.core.getAssignedVariables().contains(variable)) {
                 return;
             }
@@ -356,6 +368,11 @@ public class PDG implements Comparable<PDG> {
         }
     }
 
+    /**
+     * Try to build a control dependency edge from "fromPDGNode" to statements in the "block".
+     * @param fromPDGNode The source PDG node
+     * @param block The target block
+     */
     private void buildControlDependence(final PDGControlNode fromPDGNode,
                                         final BlockInfo block) {
         for (final StatementInfo statement : block.getStatements()) {
@@ -376,6 +393,12 @@ public class PDG implements Comparable<PDG> {
         }
     }
 
+    /**
+     * Try to build a control dependency edge from "fromPDGNode" to the statement with a boolean value on the edge.
+     * @param fromPDGNode The source PDG node
+     * @param statement The target statement
+     * @param type The value of the edge, such as "true" for "if-then", "false" for "if-else"
+     */
     private void buildControlDependence(final PDGControlNode fromPDGNode,
                                         final StatementInfo statement, final boolean type) {
         switch (statement.getCategory()) {

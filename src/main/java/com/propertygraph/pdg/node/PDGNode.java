@@ -21,8 +21,15 @@ import com.propertygraph.pe.ProgramElementInfo;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+/**
+ * Nodes in PDG.
+ * @param <T> The ProgramElementInfo type associated with this PDG node.
+ */
 public abstract class PDGNode<T extends ProgramElementInfo> implements Comparable<PDGNode<?>> {
 
+    /**
+     * The ProgramElementInfo associated with this PDG node.
+     */
     public final T core;
     private final SortedSet<PDGEdge> forwardEdges;
     private final SortedSet<PDGEdge> backwardEdges;

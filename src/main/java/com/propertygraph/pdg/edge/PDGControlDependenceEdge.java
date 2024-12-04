@@ -19,9 +19,15 @@ import com.propertygraph.pdg.node.PDGControlNode;
 import com.propertygraph.pdg.node.PDGNode;
 import lombok.Getter;
 
+/**
+ * PDG Control edge.
+ */
 @Getter
 public class PDGControlDependenceEdge extends PDGEdge {
 
+	/**
+	 * The value on the control dependency edge, such as "true" for "if-true" and "false" for "if-else".
+	 */
 	final public boolean trueDependence;
 
 	public PDGControlDependenceEdge(final PDGControlNode fromNode, final PDGNode<?> toNode, final boolean trueDependence) {

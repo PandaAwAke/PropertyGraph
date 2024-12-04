@@ -17,9 +17,16 @@ package com.propertygraph.pdg.edge;
 
 import com.propertygraph.pdg.node.PDGNode;
 
+/**
+ * PDG edge.
+ */
 public abstract class PDGEdge implements Comparable<PDGEdge> {
 
+	/**
+	 * The type of the edge.
+	 */
 	final public TYPE type;
+
 	final public PDGNode<?> fromNode;
 	final public PDGNode<?> toNode;
 
@@ -32,8 +39,18 @@ public abstract class PDGEdge implements Comparable<PDGEdge> {
 		this.toNode = toNode;
 	}
 
+	/**
+	 * Return a new PDGEdge whose "fromNode" was modified.
+	 * @param fromNode The new "fromNode"
+	 * @return The new PDGEdge
+	 */
 	public abstract PDGEdge replaceFromNode(PDGNode<?> fromNode);
 
+	/**
+	 * Return a new PDGEdge whose "toNode" was modified.
+	 * @param toNode The new "toNode"
+	 * @return The new PDGEdge
+	 */
 	public abstract PDGEdge replaceToNode(PDGNode<?> toNode);
 
 	public abstract String getDependenceString();

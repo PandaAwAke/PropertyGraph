@@ -20,8 +20,16 @@ import com.propertygraph.pe.MethodInfo;
 import com.propertygraph.pe.ProgramElementInfo;
 import org.eclipse.jdt.core.dom.ASTNode;
 
+/**
+ * The fake "entry" node for a method.
+ */
 public class PDGMethodEnterNode extends PDGControlNode {
 
+	/**
+	 * Create a new PDGMethodEnterNode instance.
+	 * @param method The method of the PDG.
+	 * @return The fake PDGMethodEnterNode
+	 */
 	static public PDGMethodEnterNode getInstance(final MethodInfo method) {
 		assert null != method : "\"method\" is null.";
 		assert method.node instanceof ASTNode : "\"method.node\" is not an ASTNode.";

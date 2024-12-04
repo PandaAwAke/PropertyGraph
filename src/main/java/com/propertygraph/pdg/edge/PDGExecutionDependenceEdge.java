@@ -17,6 +17,9 @@ package com.propertygraph.pdg.edge;
 
 import com.propertygraph.pdg.node.PDGNode;
 
+/**
+ * PDG execution edge.
+ */
 public class PDGExecutionDependenceEdge extends PDGEdge {
 
 	public PDGExecutionDependenceEdge(final PDGNode<?> fromNode,

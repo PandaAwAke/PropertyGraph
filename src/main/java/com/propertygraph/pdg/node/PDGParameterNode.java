@@ -17,6 +17,9 @@ package com.propertygraph.pdg.node;
 
 import com.propertygraph.pe.VariableInfo;
 
+/**
+ * The PDG parameter node, representing a parameter in the method.
+ */
 public class PDGParameterNode extends PDGNode<VariableInfo> {
 
 	PDGParameterNode(final VariableInfo variable) {

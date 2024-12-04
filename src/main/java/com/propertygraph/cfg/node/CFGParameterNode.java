@@ -19,6 +19,7 @@ import com.propertygraph.pe.VariableInfo;
 
 /**
  * The CFG node for parameters of a method.
+ * This is not used in the CFG because parameters are unrelated to control flow.
  */
 public class CFGParameterNode extends CFGNode<VariableInfo> {
 

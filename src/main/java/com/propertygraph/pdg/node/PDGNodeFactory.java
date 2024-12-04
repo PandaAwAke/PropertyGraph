@@ -25,14 +25,25 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * The factory to generate PDG nodes.
+ */
 public class PDGNodeFactory {
 
-	private final ConcurrentMap<ProgramElementInfo, PDGNode<?>> elementToNodeMap;
+	/**
+     * A cache for the mapping from ProgramElementInfo to PDGNode.
+     */
+	private final ConcurrentMap<ProgramElementInfo, PDGNode<? extends ProgramElementInfo>> elementToNodeMap;
 
 	public PDGNodeFactory() {
 		this.elementToNodeMap = new ConcurrentHashMap<>();
 	}
 
+	/**
+	 * Make PDG node by a CFG node.
+	 * @param node CFG node
+	 * @return PDG node
+	 */
 	public PDGNode<?> makeNode(final CFGNode<?> node) {
 		assert null != node : "\"node\" is null.";
 
@@ -46,6 +57,11 @@ public class PDGNodeFactory {
 		}
 	}
 
+	/**
+	 * Make PDGControlNode by a ProgramElementInfo.
+	 * @param element ProgramElementInfo, usually the "entry" or a condition element.
+	 * @return PDGControlNode
+	 */
 	public synchronized PDGNode<?> makeControlNode(final ProgramElementInfo element) {
 		assert null != element : "\"element\" is null.";
 
@@ -68,6 +84,11 @@ public class PDGNodeFactory {
 		return node;
 	}
 
+	/**
+	 * Make PDGNormalNode by a ProgramElementInfo.
+	 * @param element ProgramElementInfo
+	 * @return PDGNormalNode
+	 */
 	public synchronized PDGNode<?> makeNormalNode(final ProgramElementInfo element) {
 		assert null != element : "\"element\" is null.";
 
@@ -98,4 +119,5 @@ public class PDGNodeFactory {
 	public int size() {
 		return this.elementToNodeMap.size();
 	}
+
 }
