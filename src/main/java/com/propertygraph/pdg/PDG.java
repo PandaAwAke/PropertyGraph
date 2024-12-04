@@ -43,15 +43,21 @@ public class PDG implements Comparable<PDG> {
     final public boolean buildDataDependence;
     final public boolean buildExecutionDependence;
 
+    final public int controlDependencyDistance;
+    final public int dataDependencyDistance;
+    final public int executionDependencyDistance;
+
+
     /**
      * If this is false, then the dependency propagation will be short-circuited.
      * i.e. new defs will override the old defs, then eliminating the edge from the old defs to the CFG node.
      */
     final public boolean addAllPossibleDefsWhenBuildingDataDependence = false;
+    /**
+     * If this is true, then for every node, there will be an edge from the enter node to it.
+     */
+    final public boolean buildControlDependenceFromEnterToAllNodes = false;
 
-    final public int controlDependencyDistance;
-    final public int dataDependencyDistance;
-    final public int executionDependencyDistance;
 
     private CFG cfg;
 
@@ -206,7 +212,7 @@ public class PDG implements Comparable<PDG> {
 //        this.cfg.removeSwitchCases(); //switch结点
 //        this.cfg.removeJumpStatements(); //Jump结点的打扰
 
-        if (this.buildControlDependence) { //控制依赖
+        if (this.buildControlDependence && buildControlDependenceFromEnterToAllNodes) { //控制依赖
             this.buildControlDependence(this.enterNode, unit); // enter与各大结点之间的关系
 
             /*hj*/
