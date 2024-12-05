@@ -1,13 +1,12 @@
 package com.platform.demo.service;
 
-import com.platform.demo.Config;
 import com.platform.demo.MainTest;
 import com.propertygraph.pdg.node.*;
 import com.propertygraph.pe.*;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.springframework.stereotype.Service;
-import com.propertygraph.ast.ASTVisitor;
+import com.propertygraph.ast.PEASTVisitor;
 import com.propertygraph.cfg.node.CFGNodeFactory;
 import com.propertygraph.pdg.PDG;
 import com.propertygraph.pdg.edge.PDGControlDependenceEdge;
@@ -15,7 +14,6 @@ import com.propertygraph.pdg.edge.PDGDataDependenceEdge;
 import com.propertygraph.pdg.edge.PDGEdge;
 import com.propertygraph.pdg.edge.PDGExecutionDependenceEdge;
 
-import javax.annotation.Resource;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -114,9 +112,9 @@ public class PdgService {
 
         final File file = MainTest.getFiles(f).get(0);
 
-        final CompilationUnit unit = ASTVisitor.createAST(file);
+        final CompilationUnit unit = PEASTVisitor.createAST(file);
         final List<MethodInfo> m = new ArrayList<MethodInfo>();
-        final ASTVisitor visitor = new ASTVisitor(unit);
+        final PEASTVisitor visitor = new PEASTVisitor(unit);
         final List<MethodInfo> methods = visitor.getMethods();
 
         unit.accept(visitor);

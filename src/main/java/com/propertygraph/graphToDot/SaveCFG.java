@@ -1,9 +1,8 @@
 package com.propertygraph.graphToDot;
 
-import com.platform.demo.Config;
 import com.platform.demo.MainTest;
 import com.platform.demo.service.Common;
-import com.propertygraph.ast.ASTVisitor;
+import com.propertygraph.ast.PEASTVisitor;
 import com.propertygraph.cfg.CFG;
 import com.propertygraph.cfg.edge.CFGEdge;
 import com.propertygraph.cfg.node.CFGControlNode;
@@ -35,10 +34,10 @@ public class SaveCFG {
         List<File> files = MainTest.getFiles(file);
         try {
             for (File f : files) {
-                final CompilationUnit unit = ASTVisitor.createAST(f);
+                final CompilationUnit unit = PEASTVisitor.createAST(f);
 
                 final List<MethodInfo> m = new ArrayList<>();
-                final ASTVisitor visitor = new ASTVisitor(unit);
+                final PEASTVisitor visitor = new PEASTVisitor(unit);
                 final List<MethodInfo> methods = visitor.getMethods();
                 unit.accept(visitor);
                 methods.addAll(m);

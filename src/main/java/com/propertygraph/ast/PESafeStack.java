@@ -10,7 +10,7 @@ import java.util.Stack;
  *      causing additional stack pushes (i.e. at least pushing twice) without popping anything.
  * This safe stack is used for ensuring that every supported node will only cause <= 1 pushes when leaving the visitor.
  */
-public class SafePEStack {
+public class PESafeStack {
 
     final private Stack<ProgramElementInfo> stack = new Stack<>();
 

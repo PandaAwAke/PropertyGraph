@@ -2,7 +2,7 @@ package com.propertygraph.graphToDot;
 
 import com.platform.demo.MainTest;
 import com.platform.demo.service.Common;
-import com.propertygraph.ast.ASTVisitor;
+import com.propertygraph.ast.PEASTVisitor;
 import com.propertygraph.cfg.node.CFGNodeFactory;
 import com.propertygraph.pdg.PDG;
 import com.propertygraph.pdg.edge.PDGControlDependenceEdge;
@@ -37,9 +37,9 @@ public class SavePDG {
 
         List<File> files = MainTest.getFiles(f);
         for (File file : files) {
-            final CompilationUnit unit = ASTVisitor.createAST(file);
+            final CompilationUnit unit = PEASTVisitor.createAST(file);
             final List<MethodInfo> m = new ArrayList<MethodInfo>();
-            final ASTVisitor visitor = new ASTVisitor(unit);
+            final PEASTVisitor visitor = new PEASTVisitor(unit);
             final List<MethodInfo> methods = visitor.getMethods();
             unit.accept(visitor);
             methods.addAll(m);

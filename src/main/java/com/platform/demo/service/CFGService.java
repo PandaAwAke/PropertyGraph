@@ -4,7 +4,7 @@ import com.platform.demo.MainTest;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.springframework.stereotype.Service;
-import com.propertygraph.ast.ASTVisitor;
+import com.propertygraph.ast.PEASTVisitor;
 import com.propertygraph.cfg.CFG;
 import com.propertygraph.cfg.edge.CFGEdge;
 
@@ -32,9 +32,9 @@ public class CFGService {
 
         final File file = MainTest.getFiles(f).get(0);
 
-        final CompilationUnit unit = ASTVisitor.createAST(file);
+        final CompilationUnit unit = PEASTVisitor.createAST(file);
         final List<MethodInfo> m = new ArrayList<MethodInfo>();
-        final ASTVisitor visitor = new ASTVisitor(unit);
+        final PEASTVisitor visitor = new PEASTVisitor(unit);
         final List<MethodInfo> methods = visitor.getMethods();
 
         unit.accept(visitor);
