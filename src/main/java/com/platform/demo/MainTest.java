@@ -1,10 +1,7 @@
 package com.platform.demo;
 
-import com.platform.demo.service.CFGService;
-import com.platform.demo.service.PdgService;
 import org.apache.commons.compress.utils.IOUtils;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;

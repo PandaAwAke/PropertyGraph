@@ -108,6 +108,7 @@ public class PDG implements Comparable<PDG> {
     /**
      * The CFG object used for building PDG.
      */
+    @Getter
     private CFG cfg;
 
     public PDG(final MethodInfo unit,
@@ -222,12 +223,12 @@ public class PDG implements Comparable<PDG> {
 
         if (this.buildControlDependence) { //控制依赖
             if (this.buildControlDependenceFromEnterToAllNodes) {
-                // Add control edges from "entry" to all nodes (why?)
+                // Add control edges from "entry" to all nodes
                 this.buildControlDependence(this.enterNode, unit); // enter与各大结点之间的关系
             }
 
             if (this.buildControlDependenceFromEnterToParameterNodes) {
-                // Add control edges from "entry" to all parameter nodes (why?)
+                // Add control edges from "entry" to all parameter nodes
     			for (final PDGParameterNode parameterNode : this.parameterNodes) {
     				final PDGControlDependenceEdge edge = new PDGControlDependenceEdge(
     						this.enterNode, parameterNode, true);
@@ -454,10 +455,6 @@ public class PDG implements Comparable<PDG> {
 
     private void buildExecutionDependence(final CFGNode<?> toCFGNode,
                                           final PDGNode<?> fromPDGNode) {
-//        if (fromPDGNode instanceof PDGControlNode) {
-//            final ProgramElementInfo condition = pdgNode.core;
-//            this.buildControlDependence((PDGControlNode) pdgNode, condition.getOwnerConditionalBlock());
-//        }
         final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(toCFGNode);
         this.nodes.add(toPDGNode);
         final PDGExecutionDependenceEdge edge = new PDGExecutionDependenceEdge(fromPDGNode, toPDGNode);

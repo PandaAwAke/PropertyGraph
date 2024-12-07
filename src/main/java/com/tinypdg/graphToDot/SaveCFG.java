@@ -54,8 +54,8 @@ public class SaveCFG {
                 for (final MethodInfo method : methods) {
                     final CFG cfg = new CFG(method, nodeFactory);
                     cfg.build();
-                    cfg.removeSwitchCases();
-                    cfg.removeJumpStatements();
+//                    cfg.removeSwitchCases();
+//                    cfg.removeJumpStatements();
                     writeMethodCFG(cfg, createdGraphNumber++, writer);
                 }
 
