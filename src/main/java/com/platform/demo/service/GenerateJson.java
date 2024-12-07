@@ -2,10 +2,10 @@ package com.platform.demo.service;
 
 import com.platform.astdemo.structure.MyASTNode;
 import org.eclipse.jdt.core.dom.ASTNode;
-import com.propertygraph.cfg.node.CFGControlNode;
-import com.propertygraph.cfg.node.CFGNode;
-import com.propertygraph.pdg.node.PDGNode;
-import com.propertygraph.pe.MethodInfo;
+import com.tinypdg.cfg.node.CFGControlNode;
+import com.tinypdg.cfg.node.CFGNode;
+import com.tinypdg.pdg.node.PDGNode;
+import com.tinypdg.pe.MethodInfo;
 
 public class GenerateJson {
     public static void toFile(String path, StringBuilder nodes, long id){

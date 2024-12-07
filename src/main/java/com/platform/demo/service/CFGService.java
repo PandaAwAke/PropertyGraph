@@ -4,14 +4,14 @@ import com.platform.demo.MainTest;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.springframework.stereotype.Service;
-import com.propertygraph.ast.PEASTVisitor;
-import com.propertygraph.cfg.CFG;
-import com.propertygraph.cfg.edge.CFGEdge;
+import com.tinypdg.ast.PEASTVisitor;
+import com.tinypdg.cfg.CFG;
+import com.tinypdg.cfg.edge.CFGEdge;
 
-import com.propertygraph.cfg.node.CFGNode;
-import com.propertygraph.cfg.node.CFGNodeFactory;
-import com.propertygraph.pe.MethodInfo;
-import com.propertygraph.pe.ProgramElementInfo;
+import com.tinypdg.cfg.node.CFGNode;
+import com.tinypdg.cfg.node.CFGNodeFactory;
+import com.tinypdg.pe.MethodInfo;
+import com.tinypdg.pe.ProgramElementInfo;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;

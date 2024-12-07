@@ -4,7 +4,7 @@ A library to generate Abstract Syntax Tree, Control Flow Graph and Program Depen
 JDK version 8+.
 ## Generate PropertyGraph
 ```
-Main class: com.propertygraph.graphToDot.Write
+Main class: com.tinypdg.graphToDot.Write
 ```
 
 #### Usage

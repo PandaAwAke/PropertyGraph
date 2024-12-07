@@ -1,18 +1,18 @@
 package com.platform.demo.service;
 
 import com.platform.demo.MainTest;
-import com.propertygraph.pdg.node.*;
-import com.propertygraph.pe.*;
+import com.tinypdg.pdg.node.*;
+import com.tinypdg.pe.*;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.springframework.stereotype.Service;
-import com.propertygraph.ast.PEASTVisitor;
-import com.propertygraph.cfg.node.CFGNodeFactory;
-import com.propertygraph.pdg.PDG;
-import com.propertygraph.pdg.edge.PDGControlDependenceEdge;
-import com.propertygraph.pdg.edge.PDGDataDependenceEdge;
-import com.propertygraph.pdg.edge.PDGEdge;
-import com.propertygraph.pdg.edge.PDGExecutionDependenceEdge;
+import com.tinypdg.ast.PEASTVisitor;
+import com.tinypdg.cfg.node.CFGNodeFactory;
+import com.tinypdg.pdg.PDG;
+import com.tinypdg.pdg.edge.PDGControlDependenceEdge;
+import com.tinypdg.pdg.edge.PDGDataDependenceEdge;
+import com.tinypdg.pdg.edge.PDGEdge;
+import com.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;

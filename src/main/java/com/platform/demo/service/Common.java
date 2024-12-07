@@ -1,6 +1,6 @@
 package com.platform.demo.service;
 
-import com.propertygraph.pe.MethodInfo;
+import com.tinypdg.pe.MethodInfo;
 
 import java.io.File;
 import java.util.ArrayList;
