@@ -214,81 +214,73 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
 
     @Override
-    public SortedSet<String> getAssignedVariables() {
-        final SortedSet<String> variables = new TreeSet<String>();
-
+    protected void doCalcDefVariables() {
         for (final ProgramElementInfo expression : this.expressions) {
-            variables.addAll(expression.getAssignedVariables());
+            expression.getDefVariables().forEach(this::addVarDef);
         }
 
         for (final ProgramElementInfo initializer : this.initializers) {
-            variables.addAll(initializer.getAssignedVariables());
+            initializer.getDefVariables().forEach(this::addVarDef);
         }
 
         if (null != this.condition) {
-            variables.addAll(this.condition.getAssignedVariables());
+            this.condition.getDefVariables().forEach(this::addVarDef);
         }
 
         for (final ProgramElementInfo updater : this.updaters) {
-            variables.addAll(updater.getAssignedVariables());
+            updater.getDefVariables().forEach(this::addVarDef);
         }
 
         for (final StatementInfo statement : this.statements) {
-            variables.addAll(statement.getAssignedVariables());
+            statement.getDefVariables().forEach(this::addVarDef);
         }
 
         for (final StatementInfo statement : this.elseStatements) {
-            variables.addAll(statement.getAssignedVariables());
+            statement.getDefVariables().forEach(this::addVarDef);
         }
 
         for (final StatementInfo catchStatement : this.catchStatements) {
-            variables.addAll(catchStatement.getAssignedVariables());
+            catchStatement.getDefVariables().forEach(this::addVarDef);
         }
 
         if (null != this.finallyStatement) {
-            variables.addAll(this.finallyStatement.getAssignedVariables());
+            this.finallyStatement.getDefVariables().forEach(this::addVarDef);
         }
-
-        return variables;
     }
 
     @Override
-    public SortedSet<String> getReferencedVariables() {
-        final SortedSet<String> variables = new TreeSet<>();
-
+    protected void doCalcUseVariables() {
         for (final ProgramElementInfo expression : this.expressions) {
-            variables.addAll(expression.getReferencedVariables());
+            expression.getUseVariables().forEach(this::addVarUse);
         }
 
         for (final ProgramElementInfo initializer : this.initializers) {
-            variables.addAll(initializer.getReferencedVariables());
+            initializer.getUseVariables().forEach(this::addVarUse);
         }
 
         if (null != this.condition) {
-            variables.addAll(this.condition.getReferencedVariables());
+            this.condition.getUseVariables().forEach(this::addVarUse);
         }
 
         for (final ProgramElementInfo updater : this.updaters) {
-            variables.addAll(updater.getReferencedVariables());
+            updater.getUseVariables().forEach(this::addVarUse);
         }
 
         for (final StatementInfo statement : this.statements) {
-            variables.addAll(statement.getReferencedVariables());
+            statement.getUseVariables().forEach(this::addVarUse);
         }
 
         for (final StatementInfo statement : this.elseStatements) {
-            variables.addAll(statement.getReferencedVariables());
+            statement.getUseVariables().forEach(this::addVarUse);
         }
 
         for (final StatementInfo catchStatement : this.catchStatements) {
-            variables.addAll(catchStatement.getReferencedVariables());
+            catchStatement.getUseVariables().forEach(this::addVarUse);
         }
 
         if (null != this.finallyStatement) {
-            variables.addAll(this.finallyStatement.getReferencedVariables());
+            this.finallyStatement.getUseVariables().forEach(this::addVarUse);
         }
-
-        return variables;
     }
 
 }

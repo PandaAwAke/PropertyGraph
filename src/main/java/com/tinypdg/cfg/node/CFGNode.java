@@ -172,20 +172,6 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements Comparabl
         return Integer.compare(this.core.id, node.core.id);
     }
 
-    public final SortedSet<String> getAssignedVariables() {
-        final SortedSet<String> variables = new TreeSet<String>();
-        final SortedSet<String> v = this.core.getAssignedVariables();
-        variables.addAll(v);
-        return variables;
-    }
-
-    public final Set<String> getReferencedVariables() {
-        final SortedSet<String> variables = new TreeSet<String>();
-        final SortedSet<String> v = this.core.getReferencedVariables();
-        variables.addAll(v);
-        return variables;
-    }
-
     public final String getText() {
         final StringBuilder text = new StringBuilder();
         text.append(this.core.getText());

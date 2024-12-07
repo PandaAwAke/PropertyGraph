@@ -122,91 +122,113 @@ public class ExpressionInfo extends ProgramElementInfo {
     }
 
     @Override
-    public SortedSet<String> getAssignedVariables() {
-        final SortedSet<String> variables = new TreeSet<>();
+    protected void doCalcDefVariables() {
         switch (this.category) {
             case Assignment -> {
                 final ProgramElementInfo left = this.expressions.get(0);
-                variables.addAll(left.getReferencedVariables());
+                SortedSet<VarUse> leftUseVars = left.getUseVariables();
                 final ProgramElementInfo right = this.expressions.get(2);
-                variables.addAll(right.getAssignedVariables());
+                SortedSet<VarDef> rightDefVars = right.getDefVariables();
+
+                // Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
+                leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
+                rightDefVars.forEach(this::addVarDef);
             }
-            case VariableDeclarationFragment -> variables.add(this.getExpressions().get(0).getText());
+            case VariableDeclarationFragment -> {
+                final ProgramElementInfo left = this.expressions.get(0);
+                SortedSet<VarUse> leftUseVars = left.getUseVariables();
+                final ProgramElementInfo right = this.expressions.get(1);
+                SortedSet<VarDef> rightDefVars = right.getDefVariables();
+
+                // Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
+                leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
+                rightDefVars.forEach(this::addVarDef);
+            }
             case Postfix, Prefix -> {
-                final ProgramElementInfo operand = this.expressions.get(0);
-                variables.addAll(operand.getReferencedVariables());
+                // x++, ++x: surely DEF
+                for (final ProgramElementInfo expression : this.expressions) {
+                    expression.getDefVariables().forEach(lhs -> this.addVarDef(lhs.atLeast(VarDef.Type.DEF)));
+                }
             }
-            //hj add
             case MethodInvocation -> {
                 String text = this.getText();
 //			if ((text.indexOf(".add(")!=-1 || text.indexOf(".remove(")!=-1 || text.indexOf(".get(")!=-1 || text.indexOf(".put(")!=-1 ||
 //					text.indexOf(".pop(")!=-1 || text.indexOf(".push(")!=-1)){
-                if (this.qualifier != null && text.charAt(0) >= 'a' && text.charAt(0) <= 'z') {
-                    variables.add(this.qualifier.getText());
+
+                // MethodInvocation
+                // - Base are MAY_DEF (with lowercase starts):
+                // - In fact, params are also MAY_DEF, but that's uncommon so we don't add them here
+                if (this.qualifier != null &&
+                        text != null && !text.isEmpty() &&
+                        text.charAt(0) >= 'a' && text.charAt(0) <= 'z') {
+                    this.addVarDef(this.qualifier.getText(), VarDef.Type.MAY_DEF);
                 }
                 //}
             }
             default -> {
                 for (final ProgramElementInfo expression : this.expressions) {
-                    variables.addAll(expression.getAssignedVariables());
+                    expression.getDefVariables().forEach(this::addVarDef);
                 }
                 if (null != this.getAnonymousClassDeclaration()) {
                     for (final MethodInfo method : this.getAnonymousClassDeclaration().getMethods()) {
-                        variables.addAll(method.getAssignedVariables());
+                        method.getDefVariables().forEach(this::addVarDef);
                     }
                 }
             }
         }
-        return variables;
     }
 
     @Override
-    public SortedSet<String> getReferencedVariables() {
-        final SortedSet<String> variables = new TreeSet<>();
+    protected void doCalcUseVariables() {
         switch (this.category) {
             case Assignment -> {
                 final ProgramElementInfo right = this.expressions.get(2);
-                variables.addAll(right.getReferencedVariables());
+                // Assignment: RHS values are used for sure
+                right.getUseVariables().forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
             }
             case VariableDeclarationFragment -> {
+                // Assignment: RHS values are used for sure
                 if (1 < this.getExpressions().size()) {
-                    variables.addAll(this.getExpressions().get(1).getReferencedVariables());
+                    this.getExpressions().get(1).getUseVariables()
+                            .forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
                 }
             }
             case Postfix, Prefix -> {
-                /*hj*/
+                // x++, ++x: values are used for sure
                 for (final ProgramElementInfo expression : this.expressions) {
-                    variables.addAll(expression.getReferencedVariables());
+                    expression.getUseVariables().forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
                 }
-//hj			final ProgramElementInfo operand = this.expressions.get(0);
-//hj			variables.addAll(operand.getReferencedVariables());
             }
-            case SimpleName -> variables.add(this.getText());
+            case SimpleName -> {
+                this.addVarUse(this.getText(), VarUse.Type.MAY_USE);
+            }
             case MethodInvocation -> {
+                // MethodInvocation:
+                // - Params are USE
+                // - Base are MAY_USE
                 if (this.qualifier != null) {
-                    variables.addAll((this.qualifier).getReferencedVariables());
+                    this.qualifier.getUseVariables().forEach(this::addVarUse);
                 }
-                for (final ProgramElementInfo expression : this.expressions) {
-                    variables.addAll(expression.getReferencedVariables());
+
+                // The first element of expressions is the method name
+                // The rest are the params
+                for (int i = 1; i < this.expressions.size(); i++) {
+                    ProgramElementInfo expression = this.expressions.get(i);
+                    expression.getUseVariables().forEach(this::addVarUse);
                 }
-                if (null != this.getAnonymousClassDeclaration()) {
-                    for (final MethodInfo method : this.getAnonymousClassDeclaration().getMethods()) {
-                        variables.addAll(method.getReferencedVariables());
-                    }
-                }  //该case hj
             }
             default -> {
                 for (final ProgramElementInfo expression : this.expressions) {
-                    variables.addAll(expression.getReferencedVariables());
+                    expression.getUseVariables().forEach(this::addVarUse);
                 }
                 if (null != this.getAnonymousClassDeclaration()) {
                     for (final MethodInfo method : this.getAnonymousClassDeclaration().getMethods()) {
-                        variables.addAll(method.getReferencedVariables());
+                        // At least MAY_USE
+                        method.getUseVariables().forEach(this::addVarUse);
                     }
                 }
             }
         }
-        return variables;
     }
 
 }

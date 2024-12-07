@@ -93,27 +93,23 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	}
 
 	@Override
-	public SortedSet<String> getAssignedVariables() {
-		final SortedSet<String> variables = new TreeSet<>();
+	protected void doCalcDefVariables() {
 		for (final StatementInfo statement : this.statements) {
-			variables.addAll(statement.getAssignedVariables());
+			statement.getDefVariables().forEach(this::addVarDef);
 		}
 		if (lambda && lambdaExpression != null) {
-			variables.addAll(lambdaExpression.getAssignedVariables());
+			lambdaExpression.getDefVariables().forEach(this::addVarDef);
 		}
-		return variables;
 	}
 
 	@Override
-	public SortedSet<String> getReferencedVariables() {
-		final SortedSet<String> variables = new TreeSet<>();
+	protected void doCalcUseVariables() {
 		for (final StatementInfo statement : this.statements) {
-			variables.addAll(statement.getReferencedVariables());
+			statement.getUseVariables().forEach(this::addVarUse);
 		}
 		if (lambda && lambdaExpression != null) {
-			variables.addAll(lambdaExpression.getReferencedVariables());
+			lambdaExpression.getUseVariables().forEach(this::addVarUse);
 		}
-		return variables;
 	}
 
 }

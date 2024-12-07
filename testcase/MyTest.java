@@ -8,24 +8,22 @@ class MyTest {
 //        }
 //    }
 
-    public void test2(int x) {
-        int j = 0;
-        for (int i = 1; i < 100; i++, j++) {
-            if (i < 50) {
-                continue;
-            }
-
-            if (i > 70) {
-                break;
-            }
-        }
-
-        System.out.println("Finished");
-    }
-
-//    public void test3(int x) {
-//        x = 1;
-//        x = 2;
+//    public void test2(int x) {
+//        int j = 0;
+//        for (int i = 1; i < 100; i++, j++) {
+//            if (i < 50) {
+//                continue;
+//            }
+//        }
+//
+//        System.out.println("Finished");
 //    }
+
+    public void test3(int x) {
+        x = 1;
+        if (x.empty() < 2) {
+            int y = x + 2;
+        }
+    }
 
 }

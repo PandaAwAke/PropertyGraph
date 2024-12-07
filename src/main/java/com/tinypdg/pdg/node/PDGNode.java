@@ -41,22 +41,6 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements Comparabl
         this.backwardEdges = new TreeSet<>();
     }
 
-    public SortedSet<String> getDefinedVariables() {
-        return this.core.getAssignedVariables();
-    }
-
-    public SortedSet<String> getReferencedVariables() {
-        return this.core.getReferencedVariables();
-    }
-
-    public boolean isDefined(final String variable) {
-        return this.getDefinedVariables().contains(variable);
-    }
-
-    public boolean isReferenced(final String variable) {
-        return this.getReferencedVariables().contains(variable);
-    }
-
     public boolean addForwardEdge(final PDGEdge edge) {
         assert null != edge : "\"edge\" is null.";
         assert 0 == this.compareTo(edge.fromNode) : "\"edge.fromNode\" must be the same as this object.";
