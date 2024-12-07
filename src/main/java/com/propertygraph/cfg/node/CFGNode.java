@@ -200,4 +200,10 @@ public abstract class CFGNode<T extends ProgramElementInfo> implements Comparabl
         text.append(">");
         return text.toString();
     }
+
+    @Override
+    public String toString() {
+        return getText();
+    }
+
 }

@@ -17,9 +17,13 @@ package com.propertygraph.pdg.node;
 
 import com.propertygraph.pe.ProgramElementInfo;
 
+/**
+ * PDG control node. Usually represents the "entry" of a method, or a "condition" element.
+ */
 public class PDGControlNode extends PDGNode<ProgramElementInfo> {
 
 	PDGControlNode(final ProgramElementInfo condition) {
 		super(condition);
 	}
+
 }

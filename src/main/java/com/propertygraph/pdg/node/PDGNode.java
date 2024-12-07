@@ -129,4 +129,9 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements Comparabl
         return text.toString();
     }
 
+    @Override
+    public String toString() {
+        return getText();
+    }
+
 }

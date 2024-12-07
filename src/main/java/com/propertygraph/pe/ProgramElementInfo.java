@@ -65,6 +65,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	/**
 	 * Used to mark whether this program element is the "condition" of another element
 	 * (such as the condition of an "If" statement).
+	 * If so, this is the entire block of the StatementInfo (such as the whole "If" StatementInfo)
 	 */
 	@Getter
     protected BlockInfo ownerConditionalBlock;
