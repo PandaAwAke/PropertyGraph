@@ -17,6 +17,7 @@ package com.tinypdg.pdg.node;
 
 import com.tinypdg.pdg.edge.PDGEdge;
 import com.tinypdg.pe.ProgramElementInfo;
+import lombok.Getter;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -25,6 +26,7 @@ import java.util.TreeSet;
  * Nodes in PDG.
  * @param <T> The ProgramElementInfo type associated with this PDG node.
  */
+@Getter
 public abstract class PDGNode<T extends ProgramElementInfo> implements Comparable<PDGNode<?>> {
 
     /**
@@ -63,18 +65,6 @@ public abstract class PDGNode<T extends ProgramElementInfo> implements Comparabl
         assert null != edge : "\"edge\" is null.";
         assert 0 == this.compareTo(edge.toNode) : "\"edge.toNode\" must be the same as this object.";
         return this.backwardEdges.remove(edge);
-    }
-
-    public final SortedSet<PDGEdge> getBackwardEdges() {
-        final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
-        edges.addAll(this.backwardEdges);
-        return edges;
-    }
-
-    public final SortedSet<PDGEdge> getForwardEdges() {
-        final SortedSet<PDGEdge> edges = new TreeSet<PDGEdge>();
-        edges.addAll(this.forwardEdges);
-        return edges;
     }
 
     public void remove() {

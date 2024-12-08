@@ -28,6 +28,7 @@ import com.tinypdg.pe.*;
 import lombok.Getter;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The Program Dependency Graph of a method.
@@ -182,6 +183,16 @@ public class PDG implements Comparable<PDG> {
 
     public final List<PDGParameterNode> getParameterNodes() {
         return new ArrayList<>(this.parameterNodes);
+    }
+
+    /**
+     * Get all PDGNodes except entry and param nodes.
+     * @return All PDGNodes except entry and param nodes.
+     */
+    public final SortedSet<PDGNode<?>> getAllNodesExceptEntryAndParams() {
+        return this.allNodes.stream()
+                .filter(node -> !(node instanceof PDGMethodEnterNode) && !(node instanceof PDGParameterNode))
+                .collect(Collectors.toCollection(TreeSet::new));
     }
 
     public final SortedSet<PDGEdge> getAllEdges() {
