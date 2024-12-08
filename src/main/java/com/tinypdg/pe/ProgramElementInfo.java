@@ -250,7 +250,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		 * @return Cloned var use with at least the specified type
 		 */
 		public VarUse atLeast(Type type) {
-			VarUse result = new VarUse(variableName, type);
+			VarUse result = new VarUse(this);
 			if (this.type.level < type.level) {
 				result.type = type;
 			}
@@ -310,7 +310,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		 * @return Cloned var def with at least the specified type
 		 */
 		public VarDef atLeast(Type type) {
-			VarDef result = new VarDef(variableName, type);
+			VarDef result = new VarDef(this);
 			if (this.type.level < type.level) {
 				result.type = type;
 			}

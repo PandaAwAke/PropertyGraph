@@ -21,9 +21,7 @@ class MyTest {
 
     public void test3(int x) {
         x = 1;
-        if (x.empty() < 2) {
-            int y = x + 2;
-        }
+        x++;
     }
 
 }

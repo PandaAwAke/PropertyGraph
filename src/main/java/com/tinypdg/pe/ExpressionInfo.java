@@ -125,29 +125,46 @@ public class ExpressionInfo extends ProgramElementInfo {
     protected void doCalcDefVariables() {
         switch (this.category) {
             case Assignment -> {
-                final ProgramElementInfo left = this.expressions.get(0);
-                SortedSet<VarUse> leftUseVars = left.getUseVariables();
-                final ProgramElementInfo right = this.expressions.get(2);
-                SortedSet<VarDef> rightDefVars = right.getDefVariables();
+                if (this.expressions.size() == 3) {
+                    final ProgramElementInfo left = this.expressions.get(0);
+                    SortedSet<VarUse> leftUseVars = left.getUseVariables();
+                    final ProgramElementInfo right = this.expressions.get(2);
+                    SortedSet<VarDef> rightDefVars = right.getDefVariables();
 
-                // Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
-                leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
-                rightDefVars.forEach(this::addVarDef);
+                    // Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
+                    leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
+                    rightDefVars.forEach(this::addVarDef);
+                }
             }
             case VariableDeclarationFragment -> {
-                final ProgramElementInfo left = this.expressions.get(0);
-                SortedSet<VarUse> leftUseVars = left.getUseVariables();
-                final ProgramElementInfo right = this.expressions.get(1);
-                SortedSet<VarDef> rightDefVars = right.getDefVariables();
+                if (this.expressions.size() == 2) {
+                    final ProgramElementInfo left = this.expressions.get(0);
+                    SortedSet<VarUse> leftUseVars = left.getUseVariables();
+                    final ProgramElementInfo right = this.expressions.get(1);
+                    SortedSet<VarDef> rightDefVars = right.getDefVariables();
 
-                // Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
-                leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
-                rightDefVars.forEach(this::addVarDef);
+                    // VD Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
+                    leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
+                    rightDefVars.forEach(this::addVarDef);
+                }
             }
-            case Postfix, Prefix -> {
-                // x++, ++x: surely DEF
-                for (final ProgramElementInfo expression : this.expressions) {
-                    expression.getDefVariables().forEach(lhs -> this.addVarDef(lhs.atLeast(VarDef.Type.DEF)));
+            case Postfix -> {
+                // Postfix only contains: x++, x--, so it's surely DEF
+                if (this.expressions.size() == 2) {
+                    ProgramElementInfo expression = expressions.get(0);
+                    expression.getUseVariables().forEach(use -> this.addVarDef(use.getVariableName(), VarDef.Type.DEF));
+                }
+            }
+            case Prefix -> {
+                // Prefix contains: ++x, --x, +x, -x, ~x, !x
+                if (this.expressions.size() == 2 && expressions.get(0) instanceof OperatorInfo operator) {
+                    ProgramElementInfo expression = expressions.get(1);
+                    if (operator.token.equals("++") || operator.token.equals("--")) {
+                        // Only ++ and -- are surely DEF
+                        expression.getDefVariables().forEach(lhs -> this.addVarDef(lhs.atLeast(VarDef.Type.DEF)));
+                    } else {
+                        expression.getDefVariables().forEach(this::addVarDef);
+                    }
                 }
             }
             case MethodInvocation -> {
@@ -182,19 +199,23 @@ public class ExpressionInfo extends ProgramElementInfo {
     protected void doCalcUseVariables() {
         switch (this.category) {
             case Assignment -> {
-                final ProgramElementInfo right = this.expressions.get(2);
-                // Assignment: RHS values are used for sure
-                right.getUseVariables().forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
+                if (this.getExpressions().size() == 3) {
+                    // Assignment: RHS values are used for sure
+                    final ProgramElementInfo right = this.expressions.get(2);
+                    right.getUseVariables().forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
+                }
             }
             case VariableDeclarationFragment -> {
                 // Assignment: RHS values are used for sure
-                if (1 < this.getExpressions().size()) {
-                    this.getExpressions().get(1).getUseVariables()
-                            .forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
+                if (this.getExpressions().size() == 2) {
+                    ProgramElementInfo right = this.getExpressions().get(1);
+                    right.getUseVariables().forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
                 }
             }
             case Postfix, Prefix -> {
-                // x++, ++x: values are used for sure
+                // Postfix only contains: x++, x--
+                // Prefix contains: ++x, --x, +x, -x, ~x, !x
+                // All values are used for sure
                 for (final ProgramElementInfo expression : this.expressions) {
                     expression.getUseVariables().forEach(rhs -> this.addVarUse(rhs.atLeast(VarUse.Type.USE)));
                 }
