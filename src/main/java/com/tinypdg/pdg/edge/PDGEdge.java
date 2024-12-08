@@ -16,10 +16,12 @@
 package com.tinypdg.pdg.edge;
 
 import com.tinypdg.pdg.node.PDGNode;
+import lombok.Getter;
 
 /**
  * PDG edge.
  */
+@Getter
 public abstract class PDGEdge implements Comparable<PDGEdge> {
 
 	/**
