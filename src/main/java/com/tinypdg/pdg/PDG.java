@@ -16,7 +16,6 @@
 package com.tinypdg.pdg;
 
 import com.tinypdg.cfg.CFG;
-import com.tinypdg.cfg.edge.CFGEdge;
 import com.tinypdg.cfg.node.CFGNode;
 import com.tinypdg.cfg.node.CFGNodeFactory;
 import com.tinypdg.pdg.edge.PDGControlDependenceEdge;
@@ -306,11 +305,16 @@ public class PDG implements Comparable<PDG> {
         final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode); // PDGNode
         this.allNodes.add(pdgNode);
         if (this.buildDataDependence) {
-            Set<ProgramElementInfo.VarDef> defs = pdgNode.core.getDefVariables();
+            Set<ProgramElementInfo.VarDef> defs = pdgNode.core.getDefVariablesAtLeastMayDef();
             for (final ProgramElementInfo.VarDef def : defs) {
-                for (final CFGEdge edge : cfgNode.getForwardEdges()) {
-                    final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
-                    this.buildDataDependence(edge.toNode, pdgNode, def.getVariableName(), checkedNodesForDefinedVariables);
+                if (!def.getType().isAtLeastMayDef()) {
+                    continue;
+                }
+
+                // Actually the cfgNode itself should also be considered
+                this.buildDataDependence(cfgNode, pdgNode, def.getVariableName(), new HashSet<>());
+                for (final CFGNode<?> toNode : cfgNode.getForwardNodes()) {
+                    this.buildDataDependence(toNode, pdgNode, def.getVariableName(), new HashSet<>());
                 }
             }
         }
@@ -362,42 +366,60 @@ public class PDG implements Comparable<PDG> {
                 .filter(use -> use.getVariableName().equals(variable))
                 .findFirst();
 
+        boolean shouldAddEdge = false;
         if (matchedUse.isPresent()) {
             ProgramElementInfo.VarUse.Type useType = matchedUse.get().getType();
             assert useType.level > ProgramElementInfo.VarUse.Type.UNKNOWN.level : "Illegal state";
 
-            if (this.treatMayUseAsUse ||    // MAY_USE is treated as USE
-                    useType.level >= ProgramElementInfo.VarUse.Type.USE.level) {
-                final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
-                this.allNodes.add(toPDGNode);
-                final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable);
-                fromPDGNode.addForwardEdge(edge);
-                toPDGNode.addBackwardEdge(edge);
+            if (this.treatMayUseAsUse) {
+                // MAY_USE is treated as USE
+                if (useType.level >= ProgramElementInfo.VarUse.Type.MAY_USE.level) {
+                    shouldAddEdge = true;
+                }
+            } else {
+                if (useType.level >= ProgramElementInfo.VarUse.Type.USE.level) {
+                    shouldAddEdge = true;
+                }
             }
         }
+
+        // Add edge: fromPDGNode -> cfgNode (because cfgNode used this variable)
+        if (shouldAddEdge) {
+            final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
+            this.allNodes.add(toPDGNode);
+            final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable);
+            fromPDGNode.addForwardEdge(edge);
+            toPDGNode.addBackwardEdge(edge);
+        }
+
 
         // Find whether this variable was defined in this PE
         // If so, try to stop or continue the propagation...
-        Optional<ProgramElementInfo.VarDef> matchedDef = cfgNode.core.getDefVariables().stream()
+        Optional<ProgramElementInfo.VarDef> matchedDef = cfgNode.core.getDefVariablesAtLeastMayDef().stream()
                 .filter(def -> def.getVariableName().equals(variable))
                 .findFirst();
 
+        boolean shouldPropagate = true;
         if (matchedDef.isPresent()) {
-            ProgramElementInfo.VarDef.Type defType = matchedDef.get().getType();
-            assert defType.level > ProgramElementInfo.VarDef.Type.UNKNOWN.level : "Illegal state";
+            ProgramElementInfo.VarDef.Type varDefType = matchedDef.get().getType();
 
-            if (this.treatMayDefAsDef) {
-                // MAY_DEF will also stop the propagation
-                return;
-            } else if (defType.level >= ProgramElementInfo.VarDef.Type.DEF.level) {
-                // MAY_DEF will not stop the propagation
-                // DEF will stop the propagation
-                return;
+            // Only consider MAY_DEF or above
+            if (varDefType.isAtLeastMayDef()) {
+                if (this.treatMayDefAsDef) {
+                    // [MAY_DEF, DEF] will stop the propagation
+                    shouldPropagate = false;
+                } else if (varDefType.equals(ProgramElementInfo.VarDef.Type.DEF)) {
+                    // [DEF] will stop the propagation
+                    shouldPropagate = false;
+                }
             }
         }
 
-        for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
-            this.buildDataDependence(forwardNode, fromPDGNode, variable, checkedCFGNodes);
+        // Propagate
+        if (shouldPropagate) {
+            for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
+                this.buildDataDependence(forwardNode, fromPDGNode, variable, checkedCFGNodes);
+            }
         }
     }
 

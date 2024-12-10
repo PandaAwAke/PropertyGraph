@@ -18,10 +18,10 @@ package com.tinypdg.pe;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 abstract public class ProgramElementInfo implements Comparable<ProgramElementInfo> {
 
@@ -125,6 +125,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 
 	/**
      * Analyze the defined variables (i.e. defs) in this program element.
+	 * May contain NO_DEF defs.
      * @return The variable defs in the program element
      */
 	public SortedSet<VarDef> getDefVariables() {
@@ -136,7 +137,19 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	}
 
 	/**
+     * Analyze the defined variables (i.e. defs) in this program element.
+	 * Does not contain NO_DEF defs.
+     * @return The variable defs in the program element
+     */
+	public SortedSet<VarDef> getDefVariablesAtLeastMayDef() {
+		return getDefVariables().stream()
+				.filter(def -> def.getType().isAtLeastMayDef())
+				.collect(Collectors.toCollection(TreeSet::new));
+	}
+
+	/**
      * Analyze the used variables (i.e. uses) in this program element.
+	 * May contain NO_USE uses.
      * @return The variable uses in the program element
      */
 	public SortedSet<VarUse> getUseVariables() {
@@ -145,6 +158,17 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 			doCalcUseVariables();
 		}
 		return useVariables;
+	}
+
+	/**
+     * Analyze the used variables (i.e. uses) in this program element.
+	 * Does not contain NO_USE uses.
+     * @return The variable uses in the program element
+     */
+	public SortedSet<VarUse> getUseVariablesAtLeastMayUse() {
+		return getUseVariables().stream()
+				.filter(use -> use.getType().isAtLeastMayUse())
+				.collect(Collectors.toCollection(TreeSet::new));
 	}
 
 	/**
@@ -170,7 +194,8 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param varDef Var def
 	 */
 	protected void addVarDef(VarDef varDef) {
-		this.defVariables.add(new VarDef(varDef).atLeast(VarDef.Type.MAY_DEF));
+//		this.defVariables.add(new VarDef(varDef).atLeast(VarDef.Type.MAY_DEF));
+		this.defVariables.add(new VarDef(varDef));
 	}
 
 	/**
@@ -178,7 +203,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param varUse Var use
 	 */
 	protected void addVarUse(VarUse varUse) {
-		this.useVariables.add(new VarUse(varUse).atLeast(VarUse.Type.MAY_USE));
+		this.useVariables.add(new VarUse(varUse).promote(VarUse.Type.MAY_USE));
 	}
 
 	/**
@@ -223,14 +248,22 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		 */
 		public enum Type {
 			// Levels:
-			// - UNKNOWN < MAY_USE < USE
-			UNKNOWN(0), MAY_USE(1), USE(2);
+			// - UNKNOWN < NO_USE < MAY_USE < USE
+			UNKNOWN(0), NO_USE(1), MAY_USE(2), USE(3);
 
 			Type(int level) {
 				this.level = level;
 			}
 
 			public final int level;
+
+			/**
+			 * Return whether this is at least MAY_USE.
+			 * @return True if is, otherwise return false
+			 */
+			public boolean isAtLeastMayUse() {
+				return this.level >= MAY_USE.level;
+			}
 		}
 
 		VarUse(String variableName, Type type) {
@@ -245,11 +278,11 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		/**
-		 * Return a cloned var use with at least the specified type.
+		 * Return a promoted var use with at least the specified type.
 		 * @param type Type
 		 * @return Cloned var use with at least the specified type
 		 */
-		public VarUse atLeast(Type type) {
+		public VarUse promote(Type type) {
 			VarUse result = new VarUse(this);
 			if (this.type.level < type.level) {
 				result.type = type;
@@ -258,7 +291,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		@Override
-		public int compareTo(@NotNull VarUse o) {
+		public int compareTo(VarUse o) {
 			int compare = Objects.compare(variableName, o.variableName, String::compareTo);
 			if (compare == 0) {
 				compare = Objects.compare(type, o.type, Type::compareTo);
@@ -283,14 +316,22 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		 */
 		public enum Type {
 			// Levels:
-			// - UNKNOWN < MAY_DEF < DEF
-			UNKNOWN(0), MAY_DEF(1), DEF(2);
+			// - UNKNOWN < NO_DEF < MAY_DEF < DEF
+			UNKNOWN(0), NO_DEF(1), MAY_DEF(2), DEF(3);
 
 			Type(int level) {
 				this.level = level;
 			}
 
 			public final int level;
+
+			/**
+			 * Return whether this is at least MAY_DEF.
+			 * @return True if is, otherwise return false
+			 */
+			public boolean isAtLeastMayDef() {
+				return this.level >= MAY_DEF.level;
+			}
 		}
 
 		VarDef(String variableName, Type type) {
@@ -305,11 +346,11 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		/**
-		 * Return a cloned var def with at least the specified type.
+		 * Return a promoted var def with at least the specified type.
 		 * @param type Type
 		 * @return Cloned var def with at least the specified type
 		 */
-		public VarDef atLeast(Type type) {
+		public VarDef promote(Type type) {
 			VarDef result = new VarDef(this);
 			if (this.type.level < type.level) {
 				result.type = type;
@@ -318,7 +359,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		@Override
-		public int compareTo(@NotNull VarDef o) {
+		public int compareTo(VarDef o) {
 			int compare = Objects.compare(variableName, o.variableName, String::compareTo);
 			if (compare == 0) {
 				compare = Objects.compare(type, o.type, Type::compareTo);
