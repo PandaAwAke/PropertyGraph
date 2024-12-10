@@ -23,6 +23,7 @@ class MyTest {
         Integer total = (Integer)request.getSession(true).getAttribute("total");    // should NO_DEF request
         Integer total = (Integer)request.getSession(true).setAttribute("total");    // should MAY_DEF request
         List.of(1, 2);
+        ++total;
 
         String retval[];
         retval = retval[1].split("with|where", 2);

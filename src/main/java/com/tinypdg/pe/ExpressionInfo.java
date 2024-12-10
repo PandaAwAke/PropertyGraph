@@ -19,10 +19,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.jdt.core.dom.ASTNode;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.SortedSet;
+import java.util.*;
 
 /**
  * Describe the information of an expression (in the ast).
@@ -171,70 +168,86 @@ public class ExpressionInfo extends ProgramElementInfo {
         return VarDef.Type.MAY_DEF;
     }
 
+    /**
+     * Judge whether a ProgramElementInfo is a SimpleName.
+     * @param pe ProgramElementInfo
+     * @return True if pe is a SimpleName, otherwise return false
+     */
+    protected boolean isSimpleName(ProgramElementInfo pe) {
+        return pe instanceof ExpressionInfo expr && expr.getCategory().equals(CATEGORY.SimpleName);
+    }
+
     @Override
     protected void doCalcDefVariables() {
         switch (this.category) {
             case Assignment -> {
                 if (this.expressions.size() == 3) {
-                    final ProgramElementInfo left = this.expressions.get(0);
-                    SortedSet<VarUse> leftUseVars = left.getUseVariables();
-                    // expressions[1] is an operator
-                    final ProgramElementInfo right = this.expressions.get(2);
-                    SortedSet<VarDef> rightDefVars = right.getDefVariables();
-
                     // Assignment: LHS values are surely DEF, defs in RHS are kept
-                    leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
-                    rightDefVars.forEach(this::addVarDef);
+                    final ProgramElementInfo left = this.expressions.get(0);
+                    if (isSimpleName(left)) {
+                        this.addVarDef(left.getText(), VarDef.Type.DEF);
+                    } else {
+                        left.getDefVariables().forEach(this::addVarDef);
+                    }
+
+                    // expressions[1] is an operator
+
+                    final ProgramElementInfo right = this.expressions.get(2);
+                    right.getDefVariables().forEach(this::addVarDef);
                 }
             }
             case VariableDeclarationFragment -> {
                 if (this.expressions.size() == 2) {
-                    final ProgramElementInfo left = this.expressions.get(0);
-                    SortedSet<VarUse> leftUseVars = left.getUseVariables();
-                    final ProgramElementInfo right = this.expressions.get(1);
-                    SortedSet<VarDef> rightDefVars = right.getDefVariables();
-
                     // VD Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
-                    leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
-                    rightDefVars.forEach(this::addVarDef);
+                    final ProgramElementInfo left = this.expressions.get(0);
+                    if (isSimpleName(left)) {
+                        this.addVarDef(left.getText(), VarDef.Type.DEF);
+                    } else {
+                        left.getDefVariables().forEach(this::addVarDef);
+                    }
+
+                    final ProgramElementInfo right = this.expressions.get(1);
+                    right.getDefVariables().forEach(this::addVarDef);
                 }
             }
             case Postfix -> {
                 // Postfix only contains: x++, x--, so it's surely DEF
                 if (this.expressions.size() == 2) {
                     ProgramElementInfo expression = expressions.get(0);
-                    expression.getUseVariables().forEach(use -> this.addVarDef(use.getVariableName(), VarDef.Type.DEF));
+                    if (isSimpleName(expression)) {
+                        this.addVarDef(expression.getText(), VarDef.Type.DEF);
+                    } else {
+                        expression.getDefVariables().forEach(this::addVarDef);
+                    }
                 }
             }
             case Prefix -> {
                 // Prefix contains: ++x, --x, +x, -x, ~x, !x
                 if (this.expressions.size() == 2 && expressions.get(0) instanceof OperatorInfo operator) {
                     ProgramElementInfo expression = expressions.get(1);
-                    if (operator.token.equals("++") || operator.token.equals("--")) {
+                    if ((operator.token.equals("++") || operator.token.equals("--")) &&
+                            isSimpleName(expression)) {
                         // Only ++ and -- are surely DEF
-                        expression.getDefVariables().forEach(lhs -> this.addVarDef(lhs.promote(VarDef.Type.DEF)));
+                        this.addVarDef(expression.getText(), VarDef.Type.DEF);
                     } else {
                         expression.getDefVariables().forEach(this::addVarDef);
                     }
                 }
             }
             case MethodInvocation -> {
-                String text = this.getText();
-
                 // MethodInvocation
                 // - In fact, params are also MAY_DEF, but that's uncommon and will lead to a lot of FP,
                 //   so we don't add them here
-                if (this.qualifier != null && text != null && !text.isEmpty() && !this.expressions.isEmpty()) {
+                if (this.qualifier != null && !this.expressions.isEmpty()) {
                     // Judge: whether this method defines variables?
                     VarDef.Type callDefType = this.judgeMethodMayDefBase(this.expressions.get(0).getText());
 
                     // The qualifier can be "request.getSession(true)"
                     // So the variables defined in the qualifier should be defined
-                    if (this.qualifier instanceof ExpressionInfo baseExpr &&
-                            baseExpr.getCategory().equals(CATEGORY.SimpleName)) {
+                    if (isSimpleName(this.qualifier)) {
                         // Base is a simple name, add it
                         // Note: no matter what the type is, we will add it, so it may be NO_DEF
-                        this.addVarDef(baseExpr.getText(), callDefType);
+                        this.addVarDef(this.qualifier.getText(), callDefType);
                     } else {
                         // The base is not a simple name, we should add all defs in it.
                         // Here we don't use callDefType, because it may be a Chained Method Call,
