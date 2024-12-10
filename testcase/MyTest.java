@@ -20,8 +20,14 @@ class MyTest {
 //    }
 
     public void test3(int x) {
-        x = 1;
-        x++;
+        Integer total = (Integer)request.getSession(true).getAttribute("total");    // should NO_DEF request
+        Integer total = (Integer)request.getSession(true).setAttribute("total");    // should MAY_DEF request
+        List.of(1, 2);
+
+        String retval[];
+        retval = retval[1].split("with|where", 2);
+        String tablename = retval[0];
+        retval = retval[1].split("where", 2);
     }
 
 }

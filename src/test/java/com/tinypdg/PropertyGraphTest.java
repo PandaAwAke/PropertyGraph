@@ -13,7 +13,10 @@ class PropertyGraphTest {
 
     @BeforeAll
     static void setUpBeforeClass() {
-        target = new File("testcase/ActiveMQMapMessage.java");
+//        target = new File("testcase/MyTest.java");
+//        target = new File("testcase/ActiveMQMapMessage.java");
+//        target = new File("testcase/PortfolioPublishServlet.java");
+        target = new File("testcase/FilenameGuardFilterNew.java");
     }
 
     @Test
