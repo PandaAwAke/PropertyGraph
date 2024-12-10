@@ -178,10 +178,11 @@ public class ExpressionInfo extends ProgramElementInfo {
                 if (this.expressions.size() == 3) {
                     final ProgramElementInfo left = this.expressions.get(0);
                     SortedSet<VarUse> leftUseVars = left.getUseVariables();
+                    // expressions[1] is an operator
                     final ProgramElementInfo right = this.expressions.get(2);
                     SortedSet<VarDef> rightDefVars = right.getDefVariables();
 
-                    // Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
+                    // Assignment: LHS values are surely DEF, defs in RHS are kept
                     leftUseVars.forEach(lhs -> this.addVarDef(lhs.getVariableName(), VarDef.Type.DEF));
                     rightDefVars.forEach(this::addVarDef);
                 }
@@ -251,7 +252,6 @@ public class ExpressionInfo extends ProgramElementInfo {
                         }
                     }
                 }
-                //}
             }
             default -> {
                 for (final ProgramElementInfo expression : this.expressions) {

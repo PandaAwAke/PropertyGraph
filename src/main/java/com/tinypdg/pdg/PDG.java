@@ -16,7 +16,6 @@
 package com.tinypdg.pdg;
 
 import com.tinypdg.cfg.CFG;
-import com.tinypdg.cfg.edge.CFGEdge;
 import com.tinypdg.cfg.node.CFGNode;
 import com.tinypdg.cfg.node.CFGNodeFactory;
 import com.tinypdg.pdg.edge.PDGControlDependenceEdge;
@@ -312,9 +311,11 @@ public class PDG implements Comparable<PDG> {
                 if (def.getType().level <= ProgramElementInfo.VarDef.Type.NO_DEF.level) {
                     continue;
                 }
-                for (final CFGEdge edge : cfgNode.getForwardEdges()) {
-                    final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
-                    this.buildDataDependence(edge.toNode, pdgNode, def.getVariableName(), checkedNodesForDefinedVariables);
+
+                // Actually the cfgNode itself should also be considered
+                this.buildDataDependence(cfgNode, pdgNode, def.getVariableName(), new HashSet<>());
+                for (final CFGNode<?> toNode : cfgNode.getForwardNodes()) {
+                    this.buildDataDependence(toNode, pdgNode, def.getVariableName(), new HashSet<>());
                 }
             }
         }
