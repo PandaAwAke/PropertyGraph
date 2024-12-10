@@ -308,6 +308,10 @@ public class PDG implements Comparable<PDG> {
         if (this.buildDataDependence) {
             Set<ProgramElementInfo.VarDef> defs = pdgNode.core.getDefVariables();
             for (final ProgramElementInfo.VarDef def : defs) {
+                // Exclude NO_DEFs
+                if (def.getType().level <= ProgramElementInfo.VarDef.Type.NO_DEF.level) {
+                    continue;
+                }
                 for (final CFGEdge edge : cfgNode.getForwardEdges()) {
                     final Set<CFGNode<?>> checkedNodesForDefinedVariables = new HashSet<>();
                     this.buildDataDependence(edge.toNode, pdgNode, def.getVariableName(), checkedNodesForDefinedVariables);
@@ -362,19 +366,32 @@ public class PDG implements Comparable<PDG> {
                 .filter(use -> use.getVariableName().equals(variable))
                 .findFirst();
 
+        boolean shouldAddEdge = false;
         if (matchedUse.isPresent()) {
             ProgramElementInfo.VarUse.Type useType = matchedUse.get().getType();
             assert useType.level > ProgramElementInfo.VarUse.Type.UNKNOWN.level : "Illegal state";
 
-            if (this.treatMayUseAsUse ||    // MAY_USE is treated as USE
-                    useType.level >= ProgramElementInfo.VarUse.Type.USE.level) {
-                final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
-                this.allNodes.add(toPDGNode);
-                final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable);
-                fromPDGNode.addForwardEdge(edge);
-                toPDGNode.addBackwardEdge(edge);
+            if (this.treatMayUseAsUse) {
+                // MAY_USE is treated as USE
+                if (useType.level >= ProgramElementInfo.VarUse.Type.MAY_USE.level) {
+                    shouldAddEdge = true;
+                }
+            } else {
+                if (useType.level >= ProgramElementInfo.VarUse.Type.USE.level) {
+                    shouldAddEdge = true;
+                }
             }
         }
+
+        // Add edge: fromPDGNode -> cfgNode (because cfgNode used this variable)
+        if (shouldAddEdge) {
+            final PDGNode<?> toPDGNode = this.pdgNodeFactory.makeNode(cfgNode);
+            this.allNodes.add(toPDGNode);
+            final PDGDataDependenceEdge edge = new PDGDataDependenceEdge(fromPDGNode, toPDGNode, variable);
+            fromPDGNode.addForwardEdge(edge);
+            toPDGNode.addBackwardEdge(edge);
+        }
+
 
         // Find whether this variable was defined in this PE
         // If so, try to stop or continue the propagation...
@@ -382,22 +399,32 @@ public class PDG implements Comparable<PDG> {
                 .filter(def -> def.getVariableName().equals(variable))
                 .findFirst();
 
+        boolean shouldPropagate = true;
         if (matchedDef.isPresent()) {
             ProgramElementInfo.VarDef.Type defType = matchedDef.get().getType();
             assert defType.level > ProgramElementInfo.VarDef.Type.UNKNOWN.level : "Illegal state";
 
-            if (this.treatMayDefAsDef) {
-                // MAY_DEF will also stop the propagation
-                return;
-            } else if (defType.level >= ProgramElementInfo.VarDef.Type.DEF.level) {
-                // MAY_DEF will not stop the propagation
-                // DEF will stop the propagation
-                return;
+            // Only consider MAY_DEF or above
+            if (defType.level > ProgramElementInfo.VarDef.Type.NO_DEF.level) {
+                if (this.treatMayDefAsDef) {
+                    // [MAY_DEF, DEF] will stop the propagation
+                    if (defType.level >= ProgramElementInfo.VarDef.Type.MAY_DEF.level) {
+                        shouldPropagate = false;
+                    }
+                } else {
+                    // [DEF] will stop the propagation
+                    if (defType.level >= ProgramElementInfo.VarDef.Type.DEF.level) {
+                        shouldPropagate = false;
+                    }
+                }
             }
         }
 
-        for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
-            this.buildDataDependence(forwardNode, fromPDGNode, variable, checkedCFGNodes);
+        // Propagate
+        if (shouldPropagate) {
+            for (final CFGNode<?> forwardNode : cfgNode.getForwardNodes()) {
+                this.buildDataDependence(forwardNode, fromPDGNode, variable, checkedCFGNodes);
+            }
         }
     }
 

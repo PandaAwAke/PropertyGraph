@@ -18,7 +18,6 @@ package com.tinypdg.pe;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -170,7 +169,8 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param varDef Var def
 	 */
 	protected void addVarDef(VarDef varDef) {
-		this.defVariables.add(new VarDef(varDef).atLeast(VarDef.Type.MAY_DEF));
+//		this.defVariables.add(new VarDef(varDef).atLeast(VarDef.Type.MAY_DEF));
+		this.defVariables.add(new VarDef(varDef));
 	}
 
 	/**
@@ -223,8 +223,8 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		 */
 		public enum Type {
 			// Levels:
-			// - UNKNOWN < MAY_USE < USE
-			UNKNOWN(0), MAY_USE(1), USE(2);
+			// - UNKNOWN < NO_USE < MAY_USE < USE
+			UNKNOWN(0), NO_USE(1), MAY_USE(2), USE(3);
 
 			Type(int level) {
 				this.level = level;
@@ -258,7 +258,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		@Override
-		public int compareTo(@NotNull VarUse o) {
+		public int compareTo(VarUse o) {
 			int compare = Objects.compare(variableName, o.variableName, String::compareTo);
 			if (compare == 0) {
 				compare = Objects.compare(type, o.type, Type::compareTo);
@@ -283,8 +283,8 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		 */
 		public enum Type {
 			// Levels:
-			// - UNKNOWN < MAY_DEF < DEF
-			UNKNOWN(0), MAY_DEF(1), DEF(2);
+			// - UNKNOWN < NO_DEF < MAY_DEF < DEF
+			UNKNOWN(0), NO_DEF(1), MAY_DEF(2), DEF(3);
 
 			Type(int level) {
 				this.level = level;
@@ -318,7 +318,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		@Override
-		public int compareTo(@NotNull VarDef o) {
+		public int compareTo(VarDef o) {
 			int compare = Objects.compare(variableName, o.variableName, String::compareTo);
 			if (compare == 0) {
 				compare = Objects.compare(type, o.type, Type::compareTo);

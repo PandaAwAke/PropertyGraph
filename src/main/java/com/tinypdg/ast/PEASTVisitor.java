@@ -981,7 +981,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
 
         final StringBuilder text = new StringBuilder();
 
-        if (null != node.getExpression()) {
+        if (null != node.getExpression()) {     // base expression
             final ProgramElementInfo expression = this.visitAndPop(node.getExpression(), maxStackSize, ProgramElementInfo.class);
             if (expression != null) {
                 methodInvocation.setQualifier(expression);

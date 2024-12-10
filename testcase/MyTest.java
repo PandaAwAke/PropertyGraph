@@ -22,6 +22,9 @@ class MyTest {
     public void test3(int x) {
         x = 1;
         x++;
+        Integer total = (Integer)request.getSession(true).getAttribute("total");
+        Integer total = (Integer)request.getSession(true).setAttribute("total");
+        List.of(1, 2);
     }
 
 }

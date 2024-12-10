@@ -20,9 +20,9 @@ import lombok.Setter;
 import org.eclipse.jdt.core.dom.ASTNode;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * Describe the information of an expression (in the ast).
@@ -36,14 +36,15 @@ public class ExpressionInfo extends ProgramElementInfo {
     public final CATEGORY category;
 
     /**
-     * The qualifier name, such as "a" in "a.foo()" or "a.value"
+     * The qualifier name, such as "a" in "a.foo()" or "a.value", or "a.f()" in "a.f().g()"
      * @see org.eclipse.jdt.core.dom.QualifiedName
      */
     private ProgramElementInfo qualifier;
 
     /**
      * All children elements in this expression.
-     * In fact this list might contain many types of ProgramElementInfo (except BlockInfo)
+     * For assignment: [lhs, operator, rhs]
+     * For method invocation: [functionName, arg1, arg2, ...]
      */
     private final List<ProgramElementInfo> expressions = new ArrayList<>();
 
@@ -121,6 +122,55 @@ public class ExpressionInfo extends ProgramElementInfo {
         this.anonymousClassDeclaration = anonymousClassDeclaration;
     }
 
+
+    static Collection<String> noDefMethodNames = List.of(
+            "equals", "hashCode", "toString",   // Object
+            "isEmpty", "size", "length", "stream"     // Collection
+    );
+    static Collection<String> defMethodNames = List.of(
+            "push", "pop", "offer", "poll"       // Collection
+    );
+    static Collection<String> noDefMethodPrefixes = List.of(
+            "get",
+            "print", "debug", "trace", "info", "warn", "error"     // print and logs
+    );
+    static Collection<String> defMethodPrefixes = List.of(
+            "set",
+            "add", "remove", "put", "insert", "contains"     // Collection
+    );
+
+    /**
+     * Judge whether the method may define its base variables by the method name.
+     * Actually this is an exclusion strategy for defs in MethodInvocation.
+     * @param methodName The name of the method
+     * @return NO_DEF if this method doesn't define any variable <br>
+     * DEF if this method surely defined the variables <br>
+     * MAY_DEF if this method possibly defined the variables
+     */
+    protected VarDef.Type judgeMethodMayDefBase(final String methodName) {
+        for (String noDefName : noDefMethodNames) {
+            if (methodName.equals(noDefName)) {
+                return VarDef.Type.NO_DEF;
+            }
+        }
+        for (String noDefName : defMethodNames) {
+            if (methodName.equals(noDefName)) {
+                return VarDef.Type.DEF;
+            }
+        }
+        for (String noDefName : noDefMethodPrefixes) {
+            if (methodName.startsWith(noDefName)) {
+                return VarDef.Type.NO_DEF;
+            }
+        }
+        for (String noDefName : defMethodPrefixes) {
+            if (methodName.startsWith(noDefName)) {
+                return VarDef.Type.DEF;
+            }
+        }
+        return VarDef.Type.MAY_DEF;
+    }
+
     @Override
     protected void doCalcDefVariables() {
         switch (this.category) {
@@ -169,16 +219,37 @@ public class ExpressionInfo extends ProgramElementInfo {
             }
             case MethodInvocation -> {
                 String text = this.getText();
-//			if ((text.indexOf(".add(")!=-1 || text.indexOf(".remove(")!=-1 || text.indexOf(".get(")!=-1 || text.indexOf(".put(")!=-1 ||
-//					text.indexOf(".pop(")!=-1 || text.indexOf(".push(")!=-1)){
 
                 // MethodInvocation
-                // - Base are MAY_DEF (with lowercase starts):
-                // - In fact, params are also MAY_DEF, but that's uncommon so we don't add them here
-                if (this.qualifier != null &&
-                        text != null && !text.isEmpty() &&
-                        text.charAt(0) >= 'a' && text.charAt(0) <= 'z') {
-                    this.addVarDef(this.qualifier.getText(), VarDef.Type.MAY_DEF);
+                // - In fact, params are also MAY_DEF, but that's uncommon and will lead to a lot of FP,
+                //   so we don't add them here
+                if (this.qualifier != null && text != null && !text.isEmpty() && !this.expressions.isEmpty()) {
+                    // Judge: whether this method defines variables?
+                    VarDef.Type callDefType = this.judgeMethodMayDefBase(this.expressions.get(0).getText());
+
+                    // The qualifier can be "request.getSession(true)"
+                    // So the variables defined in the qualifier should be defined
+                    if (this.qualifier instanceof ExpressionInfo baseExpr &&
+                            baseExpr.getCategory().equals(CATEGORY.SimpleName)) {
+                        // Base is a simple name, add it
+                        // Note: no matter what the type is, we will add it, so it may be NO_DEF
+                        this.addVarDef(baseExpr.getText(), callDefType);
+                    } else {
+                        // The base is not a simple name, we should add all defs in it.
+                        // Here we don't use callDefType, because it may be a Chained Method Call,
+                        // such as "a.getMap().get(key).setX(b)".
+
+                        if (callDefType.level >= VarDef.Type.MAY_DEF.level) {
+                            // This function may defs something
+                            // In this case, we promote sub defs as at least MAY_DEF
+                            // For example: "a.getX().set(1)", should treat "a" as MAY_DEF
+                            this.qualifier.getDefVariables().forEach(
+                                    def -> this.addVarDef(def.atLeast(VarDef.Type.MAY_DEF))
+                            );
+                        } else {
+                            this.qualifier.getDefVariables().forEach(this::addVarDef);
+                        }
+                    }
                 }
                 //}
             }
