@@ -19,7 +19,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.jdt.core.dom.ASTNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Describe the information of an expression (in the ast).
@@ -169,12 +171,65 @@ public class ExpressionInfo extends ProgramElementInfo {
     }
 
     /**
-     * Judge whether a ProgramElementInfo is a SimpleName.
+     * Judge whether a ProgramElementInfo is a Variable, and return its variable name.
+     * Now variable is one of: [SimpleName, ArrayAccess, FieldAccess, QualifiedName]
+     * Fields will remain, but array index will be excluded.
+     * <br>
+     * Example: <br>
+     * - "a[0]" -> "a" (We don't care about the index) <br>
+     * - "a.x" -> "a.x" <br>
+     * - "foo().bar" -> null
      * @param pe ProgramElementInfo
-     * @return True if pe is a SimpleName, otherwise return false
+     * @return The name of the variable if pe is a variable, otherwise return null
      */
-    protected boolean isSimpleName(ProgramElementInfo pe) {
-        return pe instanceof ExpressionInfo expr && expr.getCategory().equals(CATEGORY.SimpleName);
+    protected String getVariableName(ProgramElementInfo pe) {
+        if (!(pe instanceof ExpressionInfo expr)) {
+            return null;
+        }
+        CATEGORY category = expr.category;
+        return switch (category) {
+            case SimpleName -> expr.getText();
+            case ArrayAccess -> {
+                if (!expr.getExpressions().isEmpty()) {
+                    ProgramElementInfo base = expr.getExpressions().get(0);
+                    if (!(base instanceof ExpressionInfo baseExpr)) {
+                        yield null;
+                    }
+                    CATEGORY baseCategory = baseExpr.category;
+                    if (baseCategory.equals(CATEGORY.SimpleName)) {
+                        yield base.getText();
+                    }
+                }
+                yield null;
+            }
+            case FieldAccess -> {
+                if (expr.getExpressions().size() == 2) {
+                    ProgramElementInfo base = expr.getExpressions().get(0);
+                    if (!(base instanceof ExpressionInfo baseExpr)) {
+                        yield null;
+                    }
+                    CATEGORY baseCategory = baseExpr.category;
+                    if (baseCategory.equals(CATEGORY.SimpleName) || baseCategory.equals(CATEGORY.This)) {
+                        yield expr.getText();
+                    }
+                }
+                yield null;
+            }
+            case QualifiedName -> {
+                if (!expr.getExpressions().isEmpty()) {
+                    ProgramElementInfo base = expr.getQualifier();
+                    if (!(base instanceof ExpressionInfo baseExpr)) {
+                        yield null;
+                    }
+                    CATEGORY baseCategory = baseExpr.category;
+                    if (baseCategory.equals(CATEGORY.SimpleName)) {
+                        yield expr.getText();
+                    }
+                }
+                yield null;
+            }
+            default -> null;
+        };
     }
 
     @Override
@@ -184,8 +239,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                 if (this.expressions.size() == 3) {
                     // Assignment: LHS values are surely DEF, defs in RHS are kept
                     final ProgramElementInfo left = this.expressions.get(0);
-                    if (isSimpleName(left)) {
-                        this.addVarDef(left.getText(), VarDef.Type.DEF);
+                    String variableName = getVariableName(left);
+                    if (variableName != null) {
+                        this.addVarDef(variableName, VarDef.Type.DEF);
                     } else {
                         left.getDefVariables().forEach(this::addVarDef);
                     }
@@ -200,8 +256,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                 if (this.expressions.size() == 2) {
                     // VD Assignment: LHS values are surely DEF, defs in RHS are at least MAY_DEF
                     final ProgramElementInfo left = this.expressions.get(0);
-                    if (isSimpleName(left)) {
-                        this.addVarDef(left.getText(), VarDef.Type.DEF);
+                    String variableName = getVariableName(left);
+                    if (variableName != null) {
+                        this.addVarDef(variableName, VarDef.Type.DEF);
                     } else {
                         left.getDefVariables().forEach(this::addVarDef);
                     }
@@ -214,8 +271,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                 // Postfix only contains: x++, x--, so it's surely DEF
                 if (this.expressions.size() == 2) {
                     ProgramElementInfo expression = expressions.get(0);
-                    if (isSimpleName(expression)) {
-                        this.addVarDef(expression.getText(), VarDef.Type.DEF);
+                    String variableName = getVariableName(expression);
+                    if (variableName != null) {
+                        this.addVarDef(variableName, VarDef.Type.DEF);
                     } else {
                         expression.getDefVariables().forEach(this::addVarDef);
                     }
@@ -225,10 +283,10 @@ public class ExpressionInfo extends ProgramElementInfo {
                 // Prefix contains: ++x, --x, +x, -x, ~x, !x
                 if (this.expressions.size() == 2 && expressions.get(0) instanceof OperatorInfo operator) {
                     ProgramElementInfo expression = expressions.get(1);
-                    if ((operator.token.equals("++") || operator.token.equals("--")) &&
-                            isSimpleName(expression)) {
+                    String variableName = getVariableName(expression);
+                    if ((operator.token.equals("++") || operator.token.equals("--")) && variableName != null) {
                         // Only ++ and -- are surely DEF
-                        this.addVarDef(expression.getText(), VarDef.Type.DEF);
+                        this.addVarDef(variableName, VarDef.Type.DEF);
                     } else {
                         expression.getDefVariables().forEach(this::addVarDef);
                     }
@@ -244,10 +302,12 @@ public class ExpressionInfo extends ProgramElementInfo {
 
                     // The qualifier can be "request.getSession(true)"
                     // So the variables defined in the qualifier should be defined
-                    if (isSimpleName(this.qualifier)) {
+
+                    String variableName = getVariableName(this.qualifier);
+                    if (variableName != null) {
                         // Base is a simple name, add it
                         // Note: no matter what the type is, we will add it, so it may be NO_DEF
-                        this.addVarDef(this.qualifier.getText(), callDefType);
+                        this.addVarDef(variableName, callDefType);
                     } else {
                         // The base is not a simple name, we should add all defs in it.
                         // Here we don't use callDefType, because it may be a Chained Method Call,
