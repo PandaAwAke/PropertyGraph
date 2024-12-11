@@ -31,19 +31,29 @@ class MyTest {
 //        retval = retval[1].split("where", 2);
 //    }
 
-    public void test4(Object a, Object b) {
-        this.t = 0;     // lhs = FieldAccess (lhs.expression = ThisExpression, lhs.fieldName = "t")
-        super.p = 1;    // lhs = SuperFieldAccess (lhs.fieldName = "p")
-        String retval[];
+//    /**
+//     * This is a javadoc
+//     * @param a
+//     * @param b
+//     */
+//    @Override
+//    public void test4(Object a, Object b) {
+//        this.t = 0;     // lhs = FieldAccess (lhs.expression = ThisExpression, lhs.fieldName = "t")
+//        super.p = 1;    // lhs = SuperFieldAccess (lhs.fieldName = "p")
+//        String retval[];
+//
+//        retval[1].split("with|where", 2);
+//        m.get()[1] = 2;
+//
+//        a.y = 1;        // QualifiedName or FieldAccess
+//        b.x = 2;        // QualifiedName or FieldAccess
+//        a.x = b.y;      // QualifiedName or FieldAccess
+//        foo().bar = 2;      // FieldAccess
+//        a.p.q.r = 4;
+//    }
 
-        retval[1].split("with|where", 2);
-        m.get()[1] = 2;
-
-        a.y = 1;        // QualifiedName or FieldAccess
-        b.x = 2;        // QualifiedName or FieldAccess
-        a.x = b.y;      // QualifiedName or FieldAccess
-        foo().bar = 2;      // FieldAccess
-        a.p.q.r = 4;
+    public void test5() {
+        final ProcessGroup parentGroup = parent.get();
     }
 
 }
