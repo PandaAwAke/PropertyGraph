@@ -35,7 +35,10 @@ public class ExpressionInfo extends ProgramElementInfo {
     public final CATEGORY category;
 
     /**
-     * The qualifier name, such as "a" in "a.foo()" or "a.value", or "a.f()" in "a.f().g()"
+     * The qualifier name, such as: <br>
+     * - "a" in "a.foo()" or "a.value" <br>
+     * - "a.f()" in "a.f().g()" <br>
+     * - "a" in "a.x"
      * @see org.eclipse.jdt.core.dom.QualifiedName
      */
     private ProgramElementInfo qualifier;
