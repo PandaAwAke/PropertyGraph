@@ -15,15 +15,15 @@
 
 package com.tinypdg.cfg.node;
 
-import com.tinypdg.pe.VariableInfo;
+import com.tinypdg.pe.VariableDeclarationInfo;
 
 /**
  * The CFG node for parameters of a method.
  * This is not used in the CFG because parameters are unrelated to control flow.
  */
-public class CFGParameterNode extends CFGNode<VariableInfo> {
+public class CFGParameterNode extends CFGNode<VariableDeclarationInfo> {
 
-	private CFGParameterNode(final VariableInfo variable) {
+	private CFGParameterNode(final VariableDeclarationInfo variable) {
 		super(variable);
 	}
 }

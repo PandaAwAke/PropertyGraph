@@ -139,7 +139,7 @@ public class PDG implements Comparable<PDG> {
         this.exitNodes = new TreeSet<>();
         this.parameterNodes = new ArrayList<>();
 
-        for (final VariableInfo variable : unit.getParameters()) {
+        for (final VariableDeclarationInfo variable : unit.getParameters()) {
             final PDGParameterNode parameterNode = (PDGParameterNode) this.pdgNodeFactory.makeNormalNode(variable);
             this.allNodes.add(parameterNode);
             this.parameterNodes.add(parameterNode);
@@ -312,9 +312,9 @@ public class PDG implements Comparable<PDG> {
                 }
 
                 // Actually the cfgNode itself should also be considered
-                this.buildDataDependence(cfgNode, pdgNode, def.getVariableName(), new HashSet<>());
+                this.buildDataDependence(cfgNode, pdgNode, def.getMainVariableName(), new HashSet<>());
                 for (final CFGNode<?> toNode : cfgNode.getForwardNodes()) {
-                    this.buildDataDependence(toNode, pdgNode, def.getVariableName(), new HashSet<>());
+                    this.buildDataDependence(toNode, pdgNode, def.getMainVariableName(), new HashSet<>());
                 }
             }
         }
@@ -363,7 +363,7 @@ public class PDG implements Comparable<PDG> {
         // The variable was defined in "fromPDGNode"
         // If "cfgNode" uses the variable, add the edge
         Optional<ProgramElementInfo.VarUse> matchedUse = cfgNode.core.getUseVariables().stream()
-                .filter(use -> use.getVariableName().equals(variable))
+                .filter(use -> use.getVariableNameAliases().contains(variable))
                 .findFirst();
 
         boolean shouldAddEdge = false;
@@ -396,7 +396,7 @@ public class PDG implements Comparable<PDG> {
         // Find whether this variable was defined in this PE
         // If so, try to stop or continue the propagation...
         Optional<ProgramElementInfo.VarDef> matchedDef = cfgNode.core.getDefVariablesAtLeastMayDef().stream()
-                .filter(def -> def.getVariableName().equals(variable))
+                .filter(def -> def.getVariableNameAliases().contains(variable))
                 .findFirst();
 
         boolean shouldPropagate = true;

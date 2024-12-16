@@ -15,14 +15,14 @@
 
 package com.tinypdg.pdg.node;
 
-import com.tinypdg.pe.VariableInfo;
+import com.tinypdg.pe.VariableDeclarationInfo;
 
 /**
  * The PDG parameter node, representing a parameter in the method.
  */
-public class PDGParameterNode extends PDGNode<VariableInfo> {
+public class PDGParameterNode extends PDGNode<VariableDeclarationInfo> {
 
-	PDGParameterNode(final VariableInfo variable) {
+	PDGParameterNode(final VariableDeclarationInfo variable) {
 		super(variable);
 	}
 }

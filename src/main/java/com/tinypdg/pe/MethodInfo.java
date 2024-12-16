@@ -44,7 +44,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	/**
 	 * The parameter VariableInfos.
 	 */
-	final private List<VariableInfo> parameters = new ArrayList<>();
+	final private List<VariableDeclarationInfo> parameters = new ArrayList<>();
 
 	/**
 	 * The statements inside the block.
@@ -61,7 +61,7 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	 * Add a parameter VariableInfo.
 	 * @param parameter The parameter info to add
 	 */
-	public void addParameter(final VariableInfo parameter) {
+	public void addParameter(final VariableDeclarationInfo parameter) {
 		assert null != parameter : "\"variable\" is null.";
 		this.parameters.add(parameter);
 	}

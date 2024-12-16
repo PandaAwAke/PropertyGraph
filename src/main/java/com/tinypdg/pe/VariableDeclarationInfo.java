@@ -20,9 +20,10 @@ import org.eclipse.jdt.core.dom.VariableDeclaration;
 
 /**
  * Describe the information of a variable (in the ast).
+ * Including parameters and SingleVariableDeclaration.
  */
 @Getter
-public class VariableInfo extends ProgramElementInfo {
+public class VariableDeclarationInfo extends ProgramElementInfo {
 
 	/**
 	 * The category of this variable.
@@ -39,12 +40,12 @@ public class VariableInfo extends ProgramElementInfo {
 	 */
 	final public String name;
 
-	public VariableInfo(final CATEGORY category,
-						final TypeInfo type,
-						final String name,
-						final VariableDeclaration node,
-						final int startLine,
-						final int endLine) {
+	public VariableDeclarationInfo(final CATEGORY category,
+								   final TypeInfo type,
+								   final String name,
+								   final VariableDeclaration node,
+								   final int startLine,
+								   final int endLine) {
 		super(node, startLine, endLine);
 		this.category = category;
 		this.type = type;

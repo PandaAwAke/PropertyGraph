@@ -72,7 +72,7 @@ public class PDGNodeFactory {
 
 		if (element instanceof ExpressionInfo) {
 			node = new PDGControlNode(element);
-		} else if (element instanceof VariableInfo) {
+		} else if (element instanceof VariableDeclarationInfo) {
 			node = new PDGControlNode(element);
 		} else if (element instanceof MethodInfo) {
 			node = PDGMethodEnterNode.getInstance((MethodInfo) element);
@@ -101,8 +101,8 @@ public class PDGNodeFactory {
 			node = new PDGExpressionNode((ExpressionInfo) element);
 		} else if (element instanceof StatementInfo) {
 			node = new PDGStatementNode((StatementInfo) element);
-		} else if (element instanceof VariableInfo) {
-			node = new PDGParameterNode((VariableInfo) element);
+		} else if (element instanceof VariableDeclarationInfo) {
+			node = new PDGParameterNode((VariableDeclarationInfo) element);
 		} else {
 			assert false : "\"element\" is an invalid parameter.";
 		}

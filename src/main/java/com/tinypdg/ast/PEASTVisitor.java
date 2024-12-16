@@ -270,9 +270,9 @@ public class PEASTVisitor extends NaiveASTFlattener {
         text.append(name).append(" (");
 
         for (final Object o : node.parameters()) {
-            final VariableInfo parameter = this.visitAndPop(o, maxStackSize, VariableInfo.class);
+            final VariableDeclarationInfo parameter = this.visitAndPop(o, maxStackSize, VariableDeclarationInfo.class);
             if (parameter != null) {
-                parameter.setCategory(VariableInfo.CATEGORY.PARAMETER);
+                parameter.setCategory(VariableDeclarationInfo.CATEGORY.PARAMETER);
                 method.addParameter(parameter);
                 text.append(parameter.getText());
                 text.append(",");
@@ -1757,8 +1757,8 @@ public class PEASTVisitor extends NaiveASTFlattener {
         final TypeInfo type = new TypeInfo(node.getType().toString(),
                 node.getType(), startLine, endLine);
         final String name = node.getName().toString();
-        final VariableInfo variable = new VariableInfo(
-                VariableInfo.CATEGORY.LOCAL, type, name, node, startLine, endLine);
+        final VariableDeclarationInfo variable = new VariableDeclarationInfo(
+                VariableDeclarationInfo.CATEGORY.LOCAL, type, name, node, startLine, endLine);
         this.stack.push(variable);
 
         final StringBuilder text = new StringBuilder();

@@ -120,17 +120,17 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 
 	// --------------------- Variable Uses & Defs ---------------------
 
-	private SortedSet<VarDef> defVariables = null;
-	private SortedSet<VarUse> useVariables = null;
+	private Set<VarDef> defVariables = null;
+	private Set<VarUse> useVariables = null;
 
 	/**
      * Analyze the defined variables (i.e. defs) in this program element.
 	 * May contain NO_DEF defs.
      * @return The variable defs in the program element
      */
-	public SortedSet<VarDef> getDefVariables() {
+	public Set<VarDef> getDefVariables() {
 		if (null == defVariables) {
-			defVariables = new TreeSet<>();
+			defVariables = new HashSet<>();
 			doCalcDefVariables();
 		}
 		return defVariables;
@@ -141,10 +141,10 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * Does not contain NO_DEF defs.
      * @return The variable defs in the program element
      */
-	public SortedSet<VarDef> getDefVariablesAtLeastMayDef() {
+	public Set<VarDef> getDefVariablesAtLeastMayDef() {
 		return getDefVariables().stream()
 				.filter(def -> def.getType().isAtLeastMayDef())
-				.collect(Collectors.toCollection(TreeSet::new));
+				.collect(Collectors.toCollection(HashSet::new));
 	}
 
 	/**
@@ -152,9 +152,9 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * May contain NO_USE uses.
      * @return The variable uses in the program element
      */
-	public SortedSet<VarUse> getUseVariables() {
+	public Set<VarUse> getUseVariables() {
 		if (null == useVariables) {
-			useVariables = new TreeSet<>();
+			useVariables = new HashSet<>();
 			doCalcUseVariables();
 		}
 		return useVariables;
@@ -165,10 +165,10 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * Does not contain NO_USE uses.
      * @return The variable uses in the program element
      */
-	public SortedSet<VarUse> getUseVariablesAtLeastMayUse() {
+	public Set<VarUse> getUseVariablesAtLeastMayUse() {
 		return getUseVariables().stream()
 				.filter(use -> use.getType().isAtLeastMayUse())
-				.collect(Collectors.toCollection(TreeSet::new));
+				.collect(Collectors.toCollection(HashSet::new));
 	}
 
 	/**
@@ -178,15 +178,6 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 */
 	protected void addVarDef(String variableName, VarDef.Type type) {
 		this.defVariables.add(new VarDef(variableName, type));
-	}
-
-	/**
-	 * Add a variable use. This should be the only interface for the subclasses to use.
-	 * @param variableName Variable name
-	 * @param type Use type, can be one of UNKNOWN, USE, MAY_USE
-	 */
-	protected void addVarUse(String variableName, VarUse.Type type) {
-		this.useVariables.add(new VarUse(variableName, type));
 	}
 
 	/**
@@ -204,6 +195,15 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 */
 	protected void addVarUse(VarUse varUse) {
 		this.useVariables.add(new VarUse(varUse).promote(VarUse.Type.MAY_USE));
+	}
+
+	/**
+	 * Add a variable use. This should be the only interface for the subclasses to use.
+	 * @param variableName Variable name
+	 * @param type Use type, can be one of UNKNOWN, USE, MAY_USE
+	 */
+	protected void addVarUse(String variableName, VarUse.Type type) {
+		this.useVariables.add(new VarUse(variableName, type));
 	}
 
 	/**
@@ -238,9 +238,20 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 */
 	@Data
 	@NoArgsConstructor
-	public static class VarUse implements Comparable<VarUse> {
+	public static class VarUse {
 		protected Object scope = null;
-		protected String variableName = null;
+
+		/**
+		 * The main variable name.
+		 */
+		protected String mainVariableName = null;
+
+		/**
+		 * Aliases of the same variable. Such as "this.source" and "source".
+		 * Note that the mainVariableName should also in it.
+		 */
+		protected Set<String> variableNameAliases = new TreeSet<>();
+
 		protected Type type = Type.UNKNOWN;
 
 		/**
@@ -267,13 +278,23 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 		}
 
 		VarUse(String variableName, Type type) {
-			this.variableName = variableName;
+			this.scope = null;
+			this.mainVariableName = variableName;
+			this.variableNameAliases.add(variableName);
+			this.type = type;
+		}
+
+		VarUse(String mainVariableName, Collection<String> variableNameAliases, Type type) {
+			this.scope = null;
+			this.mainVariableName = mainVariableName;
+			this.variableNameAliases.addAll(variableNameAliases);
 			this.type = type;
 		}
 
 		VarUse(VarUse o) {
 			this.scope = o.scope;
-			this.variableName = o.variableName;
+			this.mainVariableName = o.mainVariableName;
+			this.variableNameAliases = o.variableNameAliases;
 			this.type = o.type;
 		}
 
@@ -290,15 +311,6 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 			return result;
 		}
 
-		@Override
-		public int compareTo(VarUse o) {
-			int compare = Objects.compare(variableName, o.variableName, String::compareTo);
-			if (compare == 0) {
-				compare = Objects.compare(type, o.type, Type::compareTo);
-			}
-			return compare;
-		}
-
 	}
 	
 	/**
@@ -306,9 +318,20 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 */
 	@Data
 	@NoArgsConstructor
-	public static class VarDef implements Comparable<VarDef> {
+	public static class VarDef {
 		protected Object scope = null;
-		protected String variableName = null;
+
+		/**
+		 * The main variable name.
+		 */
+		protected String mainVariableName = null;
+
+		/**
+		 * Aliases of the same variable. Such as "this.source" and "source".
+		 * Note that the mainVariableName should also in it.
+		 */
+		protected Set<String> variableNameAliases = new TreeSet<>();
+
 		protected Type type = Type.UNKNOWN;
 
 		/**
@@ -334,14 +357,24 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 			}
 		}
 
-		VarDef(String variableName, Type type) {
-			this.variableName = variableName;
+		VarDef(String variableName, VarDef.Type type) {
+			this.scope = null;
+			this.mainVariableName = variableName;
+			this.variableNameAliases.add(variableName);
+			this.type = type;
+		}
+
+		VarDef(String mainVariableName, Collection<String> variableNameAliases, VarDef.Type type) {
+			this.scope = null;
+			this.mainVariableName = mainVariableName;
+			this.variableNameAliases.addAll(variableNameAliases);
 			this.type = type;
 		}
 
 		VarDef(VarDef o) {
 			this.scope = o.scope;
-			this.variableName = o.variableName;
+			this.mainVariableName = o.mainVariableName;
+			this.variableNameAliases = o.variableNameAliases;
 			this.type = o.type;
 		}
 
@@ -356,15 +389,6 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 				result.type = type;
 			}
 			return result;
-		}
-
-		@Override
-		public int compareTo(VarDef o) {
-			int compare = Objects.compare(variableName, o.variableName, String::compareTo);
-			if (compare == 0) {
-				compare = Objects.compare(type, o.type, Type::compareTo);
-			}
-			return compare;
 		}
 
 	}
