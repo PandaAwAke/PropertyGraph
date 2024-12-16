@@ -24,6 +24,8 @@ import com.tinypdg.pdg.edge.PDGEdge;
 import com.tinypdg.pdg.edge.PDGExecutionDependenceEdge;
 import com.tinypdg.pdg.node.*;
 import com.tinypdg.pe.*;
+import com.tinypdg.pe.var.VarDef;
+import com.tinypdg.pe.var.VarUse;
 import lombok.Getter;
 
 import java.util.*;
@@ -305,8 +307,8 @@ public class PDG implements Comparable<PDG> {
         final PDGNode<?> pdgNode = this.pdgNodeFactory.makeNode(cfgNode); // PDGNode
         this.allNodes.add(pdgNode);
         if (this.buildDataDependence) {
-            Set<ProgramElementInfo.VarDef> defs = pdgNode.core.getDefVariablesAtLeastMayDef();
-            for (final ProgramElementInfo.VarDef def : defs) {
+            Set<VarDef> defs = pdgNode.core.getDefVariablesAtLeastMayDef();
+            for (final VarDef def : defs) {
                 if (!def.getType().isAtLeastMayDef()) {
                     continue;
                 }
@@ -362,22 +364,22 @@ public class PDG implements Comparable<PDG> {
 
         // The variable was defined in "fromPDGNode"
         // If "cfgNode" uses the variable, add the edge
-        Optional<ProgramElementInfo.VarUse> matchedUse = cfgNode.core.getUseVariables().stream()
+        Optional<VarUse> matchedUse = cfgNode.core.getUseVariables().stream()
                 .filter(use -> use.getVariableNameAliases().contains(variable))
                 .findFirst();
 
         boolean shouldAddEdge = false;
         if (matchedUse.isPresent()) {
-            ProgramElementInfo.VarUse.Type useType = matchedUse.get().getType();
-            assert useType.level > ProgramElementInfo.VarUse.Type.UNKNOWN.level : "Illegal state";
+            VarUse.Type useType = matchedUse.get().getType();
+            assert useType.level > VarUse.Type.UNKNOWN.level : "Illegal state";
 
             if (this.treatMayUseAsUse) {
                 // MAY_USE is treated as USE
-                if (useType.level >= ProgramElementInfo.VarUse.Type.MAY_USE.level) {
+                if (useType.level >= VarUse.Type.MAY_USE.level) {
                     shouldAddEdge = true;
                 }
             } else {
-                if (useType.level >= ProgramElementInfo.VarUse.Type.USE.level) {
+                if (useType.level >= VarUse.Type.USE.level) {
                     shouldAddEdge = true;
                 }
             }
@@ -395,20 +397,20 @@ public class PDG implements Comparable<PDG> {
 
         // Find whether this variable was defined in this PE
         // If so, try to stop or continue the propagation...
-        Optional<ProgramElementInfo.VarDef> matchedDef = cfgNode.core.getDefVariablesAtLeastMayDef().stream()
+        Optional<VarDef> matchedDef = cfgNode.core.getDefVariablesAtLeastMayDef().stream()
                 .filter(def -> def.getVariableNameAliases().contains(variable))
                 .findFirst();
 
         boolean shouldPropagate = true;
         if (matchedDef.isPresent()) {
-            ProgramElementInfo.VarDef.Type varDefType = matchedDef.get().getType();
+            VarDef.Type varDefType = matchedDef.get().getType();
 
             // Only consider MAY_DEF or above
             if (varDefType.isAtLeastMayDef()) {
                 if (this.treatMayDefAsDef) {
                     // [MAY_DEF, DEF] will stop the propagation
                     shouldPropagate = false;
-                } else if (varDefType.equals(ProgramElementInfo.VarDef.Type.DEF)) {
+                } else if (varDefType.equals(VarDef.Type.DEF)) {
                     // [DEF] will stop the propagation
                     shouldPropagate = false;
                 }

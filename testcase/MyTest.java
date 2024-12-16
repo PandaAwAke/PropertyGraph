@@ -54,6 +54,17 @@ class MyTest {
 
     public void test5() {
         final ProcessGroup parentGroup = parent.get();
+
+        int x = 1;
+        {
+            System.out.println(x);
+            int x = 2;
+            System.out.println(x);
+            {
+                x = 3;
+                System.out.println(x);
+            }
+        }
     }
 
 }

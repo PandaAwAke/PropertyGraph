@@ -15,6 +15,8 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.VarDef;
+import com.tinypdg.pe.var.VarUse;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -257,8 +259,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                     final ProgramElementInfo left = this.expressions.get(0);
                     Map<String, Set<String>> variableNameAliasesMap = getVariableNameAliases(left);
                     if (!variableNameAliasesMap.isEmpty()) {
-                        variableNameAliasesMap.forEach((variableName, variableNameAliases) ->
-                                this.addVarDef(new VarDef(variableName, variableNameAliases, VarDef.Type.DEF)));
+                        variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarDef(
+                                new VarDef(null, variableName, variableNameAliases, VarDef.Type.DEF)
+                        ));
                     } else {
                         left.getDefVariables().forEach(this::addVarDef);
                     }
@@ -275,8 +278,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                     final ProgramElementInfo left = this.expressions.get(0);
                     Map<String, Set<String>> variableNameAliasesMap = getVariableNameAliases(left);
                     if (!variableNameAliasesMap.isEmpty()) {
-                        variableNameAliasesMap.forEach((variableName, variableNameAliases) ->
-                                this.addVarDef(new VarDef(variableName, variableNameAliases, VarDef.Type.DEF)));
+                        variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarDef(
+                                new VarDef(null, variableName, variableNameAliases, VarDef.Type.DEF)
+                        ));
                     } else {
                         left.getDefVariables().forEach(this::addVarDef);
                     }
@@ -291,8 +295,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                     ProgramElementInfo expression = expressions.get(0);
                     Map<String, Set<String>> variableNameAliasesMap = getVariableNameAliases(expression);
                     if (!variableNameAliasesMap.isEmpty()) {
-                        variableNameAliasesMap.forEach((variableName, variableNameAliases) ->
-                                this.addVarDef(new VarDef(variableName, variableNameAliases, VarDef.Type.DEF)));
+                        variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarDef(
+                                new VarDef(null, variableName, variableNameAliases, VarDef.Type.DEF)
+                        ));
                     } else {
                         expression.getDefVariables().forEach(this::addVarDef);
                     }
@@ -305,8 +310,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                     Map<String, Set<String>> variableNameAliasesMap = getVariableNameAliases(expression);
                     if (!variableNameAliasesMap.isEmpty() && (operator.token.equals("++") || operator.token.equals("--"))) {
                         // Only ++ and -- are surely DEF
-                        variableNameAliasesMap.forEach((variableName, variableNameAliases) ->
-                                this.addVarDef(new VarDef(variableName, variableNameAliases, VarDef.Type.DEF)));
+                        variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarDef(
+                                new VarDef(null, variableName, variableNameAliases, VarDef.Type.DEF)
+                        ));
                     } else {
                         expression.getDefVariables().forEach(this::addVarDef);
                     }
@@ -327,8 +333,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                     if (!variableNameAliasesMap.isEmpty()) {
                         // Base is a simple name, add it
                         // Note: no matter what the type is, we will add it, so it can be NO_DEF
-                        variableNameAliasesMap.forEach((variableName, variableNameAliases) ->
-                                this.addVarDef(new VarDef(variableName, variableNameAliases, callDefType)));
+                        variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarDef(
+                                new VarDef(null, variableName, variableNameAliases, callDefType)
+                        ));
                     } else {
                         // The base is not a simple name, we should add all defs in it.
                         // Here we don't use callDefType, because it may be a Chained Method Call,
@@ -386,7 +393,7 @@ public class ExpressionInfo extends ProgramElementInfo {
                 }
             }
             case SimpleName -> {
-                this.addVarUse(this.getText(), VarUse.Type.MAY_USE);
+                this.addVarUse(null, this.getText(), Set.of(this.getText()), VarUse.Type.MAY_USE);
             }
             case MethodInvocation -> {
                 // MethodInvocation:
@@ -407,8 +414,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                 // If this is a variable, return it directly
                 Map<String, Set<String>> variableNameAliasesMap = getVariableNameAliases(this);
                 if (!variableNameAliasesMap.isEmpty()) {
-                    variableNameAliasesMap.forEach((variableName, variableNameAliases) ->
-                            this.addVarUse(new VarUse(variableName, variableNameAliases, VarUse.Type.MAY_USE)));
+                    variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarUse(
+                            new VarUse(null, variableName, variableNameAliases, VarUse.Type.MAY_USE)
+                    ));
                 } else {
                     // This is not a variable, find uses recursively
                     for (final ProgramElementInfo expression : this.expressions) {

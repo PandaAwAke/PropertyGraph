@@ -15,6 +15,8 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.VarDef;
+import com.tinypdg.pe.var.VarUse;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -212,6 +214,28 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         this.expressions.add(element);
     }
 
+
+    /**
+     * Add a var def with our "ownerBlock" scope.
+     * @param varDef Var def
+     */
+    @Override
+    protected void addVarDef(VarDef varDef) {
+        VarDef defWithScope = new VarDef(varDef);
+        defWithScope.setScope(this.ownerBlock);
+        super.addVarDef(defWithScope);
+    }
+
+    /**
+     * Add a var use with our "ownerBlock" scope.
+     * @param varUse Var use
+     */
+    @Override
+    protected void addVarUse(VarUse varUse) {
+        VarUse useWithScope = new VarUse(varUse);
+        useWithScope.setScope(this.ownerBlock);
+        super.addVarUse(useWithScope);
+    }
 
     @Override
     protected void doCalcDefVariables() {

@@ -15,9 +15,9 @@
 
 package com.tinypdg.pe;
 
-import lombok.Data;
+import com.tinypdg.pe.var.VarDef;
+import com.tinypdg.pe.var.VarUse;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -173,11 +173,12 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 
 	/**
 	 * Add a variable def. This should be the only interface for the subclasses to use.
-	 * @param variableName Variable name
+	 * @param mainVariableName Variable name
 	 * @param type Def type, can be one of UNKNOWN, DEF, MAY_DEF
 	 */
-	protected void addVarDef(String variableName, VarDef.Type type) {
-		this.defVariables.add(new VarDef(variableName, type));
+	protected void addVarDef(ProgramElementInfo scope, String mainVariableName,
+							 Collection<String> variableNameAliases, VarDef.Type type) {
+		this.defVariables.add(new VarDef(scope, mainVariableName, variableNameAliases, type));
 	}
 
 	/**
@@ -185,8 +186,17 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param varDef Var def
 	 */
 	protected void addVarDef(VarDef varDef) {
-//		this.defVariables.add(new VarDef(varDef).atLeast(VarDef.Type.MAY_DEF));
 		this.defVariables.add(new VarDef(varDef));
+	}
+
+	/**
+	 * Add a variable use. This should be the only interface for the subclasses to use.
+	 * @param mainVariableName Variable name
+	 * @param type Use type, can be one of UNKNOWN, USE, MAY_USE
+	 */
+	protected void addVarUse(ProgramElementInfo scope, String mainVariableName,
+							 Collection<String> variableNameAliases, VarUse.Type type) {
+		this.useVariables.add(new VarUse(scope, mainVariableName, variableNameAliases, type));
 	}
 
 	/**
@@ -194,16 +204,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param varUse Var use
 	 */
 	protected void addVarUse(VarUse varUse) {
-		this.useVariables.add(new VarUse(varUse).promote(VarUse.Type.MAY_USE));
-	}
-
-	/**
-	 * Add a variable use. This should be the only interface for the subclasses to use.
-	 * @param variableName Variable name
-	 * @param type Use type, can be one of UNKNOWN, USE, MAY_USE
-	 */
-	protected void addVarUse(String variableName, VarUse.Type type) {
-		this.useVariables.add(new VarUse(variableName, type));
+		this.useVariables.add(new VarUse(varUse));
 	}
 
 	/**
@@ -232,165 +233,5 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 //		return node.toString();
 	}
 
-
-	/**
-	 * Record the information of uses of the variables in the ProgramElement.
-	 */
-	@Data
-	@NoArgsConstructor
-	public static class VarUse {
-		protected Object scope = null;
-
-		/**
-		 * The main variable name.
-		 */
-		protected String mainVariableName = null;
-
-		/**
-		 * Aliases of the same variable. Such as "this.source" and "source".
-		 * Note that the mainVariableName should also in it.
-		 */
-		protected Set<String> variableNameAliases = new TreeSet<>();
-
-		protected Type type = Type.UNKNOWN;
-
-		/**
-		 * Use types.
-		 */
-		public enum Type {
-			// Levels:
-			// - UNKNOWN < NO_USE < MAY_USE < USE
-			UNKNOWN(0), NO_USE(1), MAY_USE(2), USE(3);
-
-			Type(int level) {
-				this.level = level;
-			}
-
-			public final int level;
-
-			/**
-			 * Return whether this is at least MAY_USE.
-			 * @return True if is, otherwise return false
-			 */
-			public boolean isAtLeastMayUse() {
-				return this.level >= MAY_USE.level;
-			}
-		}
-
-		VarUse(String variableName, Type type) {
-			this.scope = null;
-			this.mainVariableName = variableName;
-			this.variableNameAliases.add(variableName);
-			this.type = type;
-		}
-
-		VarUse(String mainVariableName, Collection<String> variableNameAliases, Type type) {
-			this.scope = null;
-			this.mainVariableName = mainVariableName;
-			this.variableNameAliases.addAll(variableNameAliases);
-			this.type = type;
-		}
-
-		VarUse(VarUse o) {
-			this.scope = o.scope;
-			this.mainVariableName = o.mainVariableName;
-			this.variableNameAliases = o.variableNameAliases;
-			this.type = o.type;
-		}
-
-		/**
-		 * Return a promoted var use with at least the specified type.
-		 * @param type Type
-		 * @return Cloned var use with at least the specified type
-		 */
-		public VarUse promote(Type type) {
-			VarUse result = new VarUse(this);
-			if (this.type.level < type.level) {
-				result.type = type;
-			}
-			return result;
-		}
-
-	}
-	
-	/**
-	 * Record the information of defs of the variables in the ProgramElement.
-	 */
-	@Data
-	@NoArgsConstructor
-	public static class VarDef {
-		protected Object scope = null;
-
-		/**
-		 * The main variable name.
-		 */
-		protected String mainVariableName = null;
-
-		/**
-		 * Aliases of the same variable. Such as "this.source" and "source".
-		 * Note that the mainVariableName should also in it.
-		 */
-		protected Set<String> variableNameAliases = new TreeSet<>();
-
-		protected Type type = Type.UNKNOWN;
-
-		/**
-		 * Def types.
-		 */
-		public enum Type {
-			// Levels:
-			// - UNKNOWN < NO_DEF < MAY_DEF < DEF
-			UNKNOWN(0), NO_DEF(1), MAY_DEF(2), DEF(3);
-
-			Type(int level) {
-				this.level = level;
-			}
-
-			public final int level;
-
-			/**
-			 * Return whether this is at least MAY_DEF.
-			 * @return True if is, otherwise return false
-			 */
-			public boolean isAtLeastMayDef() {
-				return this.level >= MAY_DEF.level;
-			}
-		}
-
-		VarDef(String variableName, VarDef.Type type) {
-			this.scope = null;
-			this.mainVariableName = variableName;
-			this.variableNameAliases.add(variableName);
-			this.type = type;
-		}
-
-		VarDef(String mainVariableName, Collection<String> variableNameAliases, VarDef.Type type) {
-			this.scope = null;
-			this.mainVariableName = mainVariableName;
-			this.variableNameAliases.addAll(variableNameAliases);
-			this.type = type;
-		}
-
-		VarDef(VarDef o) {
-			this.scope = o.scope;
-			this.mainVariableName = o.mainVariableName;
-			this.variableNameAliases = o.variableNameAliases;
-			this.type = o.type;
-		}
-
-		/**
-		 * Return a promoted var def with at least the specified type.
-		 * @param type Type
-		 * @return Cloned var def with at least the specified type
-		 */
-		public VarDef promote(Type type) {
-			VarDef result = new VarDef(this);
-			if (this.type.level < type.level) {
-				result.type = type;
-			}
-			return result;
-		}
-
-	}
 
 }
