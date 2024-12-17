@@ -76,6 +76,11 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	@Getter
     protected BlockInfo ownerConditionalBlock;
 
+	/**
+	 * Whether we should treat non-local variables as field such as "this.source".
+	 */
+	protected static boolean TREAT_NON_LOCAL_VARIABLE_AS_FIELD = true;
+
 	public ProgramElementInfo(final Object node, final int startLine, final int endLine) {
 		this.node = node;
 		this.startLine = startLine;

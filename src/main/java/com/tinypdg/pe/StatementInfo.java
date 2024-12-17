@@ -255,7 +255,19 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
             }
         }
 
-        defWithScope.updateScope();
+        if (defWithScope.getScope() == null) {
+            if (TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+                // Actually the var is a field of "this", let's change its main name and aliases
+                String mainVariableName = defWithScope.getMainVariableName();
+                if (!mainVariableName.startsWith("this.")) {
+                    String mainVariableNameWithThis = "this." + mainVariableName;
+                    defWithScope = new VarDef(defWithScope.getScope(), mainVariableNameWithThis,
+                            Set.of(mainVariableName, mainVariableNameWithThis), defWithScope.getType());
+                }
+            }
+        } else {
+            defWithScope.updateScope();
+        }
         super.addVarDef(defWithScope);
     }
 
@@ -278,7 +290,19 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
             useWithScope = new VarUse(null, varUse);
         }
 
-        useWithScope.updateScope();
+        if (useWithScope.getScope() == null) {
+            if (TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+                // Actually the var is a field of "this", let's change its main name and aliases
+                String mainVariableName = useWithScope.getMainVariableName();
+                if (!mainVariableName.startsWith("this.")) {
+                    String mainVariableNameWithThis = "this." + mainVariableName;
+                    useWithScope = new VarUse(useWithScope.getScope(), mainVariableNameWithThis,
+                            Set.of(mainVariableName, mainVariableNameWithThis), useWithScope.getType());
+                }
+            }
+        } else {
+            useWithScope.updateScope();
+        }
         super.addVarUse(useWithScope);
     }
 

@@ -182,7 +182,7 @@ public class ExpressionInfo extends ProgramElementInfo {
      * - "a[0]" -> {"a": ["a"]} (We don't care about the index) <br>
      * - "a.x" -> {"a.x": ["a.x"], "a": ["a"]} (Although "a" should also be considered, but it is not an alias) <br>
      * - "foo().bar" -> {} <br>
-     * - "this.source" -> {"this.source": ["this.source", "source"]}
+     * - "this.source" -> {"this.source": ["this.source", "source" (if TREAT_NON_LOCAL_VARIABLE_AS_FIELD)]}
      * @param pe ProgramElementInfo
      * @return The name aliases map (unmodifiable) of the variable if pe is a variable. <br>
      *      The key is the main name of the variable, and the value is the aliases set (including the main name)
@@ -223,9 +223,14 @@ public class ExpressionInfo extends ProgramElementInfo {
                                 baseText, Set.of(baseText));
                     }
                     if (baseCategory.equals(CATEGORY.This)) {
-                        // "this.source" -> {"this.source": ["this.source", "source"]}
-                        String fieldText = expr.getExpressions().get(1).getText();
-                        yield Map.of(exprText, Set.of(fieldText, exprText));
+                        if (TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+                            // "this.source" -> {"this.source": ["this.source"]}
+                            yield Map.of(exprText, Set.of(exprText));
+                        } else {
+                            // "this.source" -> {"this.source": ["this.source", "source"]}
+                            String fieldText = expr.getExpressions().get(1).getText();
+                            yield Map.of(exprText, Set.of(exprText, fieldText));
+                        }
                     }
                 }
                 yield Map.of();
