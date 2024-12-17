@@ -224,9 +224,8 @@ public class ExpressionInfo extends ProgramElementInfo {
                     }
                     if (baseCategory.equals(CATEGORY.This)) {
                         // "this.source" -> {"this.source": ["this.source", "source"]}
-//                        String fieldText = expr.getExpressions().get(1).getText();
-                        String fieldText = expr.getText();
-                        yield Map.of(fieldText, Set.of(fieldText, exprText));
+                        String fieldText = expr.getExpressions().get(1).getText();
+                        yield Map.of(exprText, Set.of(fieldText, exprText));
                     }
                 }
                 yield Map.of();
