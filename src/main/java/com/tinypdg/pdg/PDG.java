@@ -247,6 +247,10 @@ public class PDG implements Comparable<PDG> {
         }
 
         if (this.buildDataDependence) {
+            // Initialization: calculate all defs and uses (for later use)
+            this.unit.getDefVariables();
+            this.unit.getUseVariables();
+
             // Data dependency edges: parameters to "CFG entry" (the first statement of the method)
             for (final PDGParameterNode parameterNode : this.parameterNodes) {
                 if (!this.cfg.isEmpty()) {

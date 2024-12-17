@@ -15,6 +15,7 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.Scope;
 import com.tinypdg.pe.var.ScopeManager;
 import com.tinypdg.pe.var.VarDef;
 import com.tinypdg.pe.var.VarUse;
@@ -230,8 +231,31 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     @Override
     protected void addVarDef(VarDef varDef) {
-        VarDef defWithScope = new VarDef(varDef);
-        defWithScope.setScope(scopeManager.getScope(this.ownerBlock));
+        VarDef defWithScope;
+        Scope ourScope = scopeManager.getScope(this.ownerBlock);
+
+        if (varDef.getType().isAtLeastDeclare()) {
+            // Case 1: it is a DECLARE
+            if (varDef.getScope() == null) {
+                // It was not declared in any scope
+                defWithScope = new VarDef(ourScope, varDef);
+            } else {
+                defWithScope = new VarDef(varDef);
+            }
+        } else {
+            // Case 2: it is not a DECLARE
+            Scope matchedScope = ourScope.searchVariable(varDef.getMainVariableName());
+            if (matchedScope != null) {
+                // Found a matched scope (including myself), set it
+                defWithScope = new VarDef(matchedScope, varDef);
+            } else {
+                // This varDef was not declared
+                // It is most likely a this.xxx def, set scope to null
+                defWithScope = new VarDef(null, varDef);
+            }
+        }
+
+        defWithScope.updateScope();
         super.addVarDef(defWithScope);
     }
 
@@ -241,8 +265,20 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     @Override
     protected void addVarUse(VarUse varUse) {
-        VarUse useWithScope = new VarUse(varUse);
-        useWithScope.setScope(scopeManager.getScope(this.ownerBlock));
+        VarUse useWithScope;
+        Scope ourScope = scopeManager.getScope(this.ownerBlock);
+
+        Scope matchedScope = ourScope.searchVariable(varUse.getMainVariableName());
+        if (matchedScope != null) {
+            // Found a matched scope (including myself), set it
+            useWithScope = new VarUse(matchedScope, varUse);
+        } else {
+            // This varDef was not declared
+            // It is most likely a this.xxx def, set scope to null
+            useWithScope = new VarUse(null, varUse);
+        }
+
+        useWithScope.updateScope();
         super.addVarUse(useWithScope);
     }
 

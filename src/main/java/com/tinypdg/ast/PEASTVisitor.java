@@ -262,7 +262,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
         final int startLine = this.getStartLineNumber(node);
         final int endLine = this.getEndLineNumber(node);
         final String name = node.getName().getIdentifier();
-        final MethodInfo method = new MethodInfo(false, name, node, startLine, endLine);
+        final MethodInfo method = new MethodInfo(scopeManager, false, name, node, startLine, endLine);
         int maxStackSize = this.stack.push(method);
 
         final StringBuilder text = new StringBuilder();
@@ -306,7 +306,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
         final int startLine = this.getStartLineNumber(node);
         final int endLine = this.getEndLineNumber(node);
 
-        final MethodInfo method = new MethodInfo(true, null, node, startLine, endLine);
+        final MethodInfo method = new MethodInfo(scopeManager, true, null, node, startLine, endLine);
         int maxStackSize = this.stack.push(method);
 
         final StringBuilder text = new StringBuilder();

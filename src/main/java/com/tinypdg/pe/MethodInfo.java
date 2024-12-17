@@ -15,15 +15,23 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.ScopeManager;
+import com.tinypdg.pe.var.VarDef;
 import lombok.Getter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Describe the information of a method (in the ast).
  */
 @Getter
 public class MethodInfo extends ProgramElementInfo implements BlockInfo {
+
+	/**
+     * The scope manager used for creating scopes.
+     */
+    private final ScopeManager scopeManager;
 
 	/**
 	 * Used for lambda expression. Mark whether this is a lambda method.
@@ -51,8 +59,10 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	 */
 	final private List<StatementInfo> statements = new ArrayList<>();
 
-	public MethodInfo(final boolean lambda, final String name, final Object node, final int startLine, final int endLine) {
+	public MethodInfo(final ScopeManager scopeManager, final boolean lambda, final String name,
+					  final Object node, final int startLine, final int endLine) {
 		super(node, startLine, endLine);
+		this.scopeManager = scopeManager;
 		this.lambda = lambda;
 		this.name = name;
 	}
@@ -94,11 +104,17 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 
 	@Override
 	protected void doCalcDefVariables() {
+		// Make sure that the parameters are calculated firstly
+		for (final VariableDeclarationInfo parameter : this.parameters) {
+			parameter.getDefVariables().forEach(paramDef -> {
+				VarDef def = new VarDef(scopeManager.getScope(this),
+						paramDef.getMainVariableName(), paramDef.getVariableNameAliases(), paramDef.getType());
+				def.updateScope();
+				this.addVarDef(def);
+			});
+		}
 		for (final StatementInfo statement : this.statements) {
 			statement.getDefVariables().forEach(this::addVarDef);
-		}
-		for (final VariableDeclarationInfo parameter : this.parameters) {
-			parameter.getDefVariables().forEach(this::addVarDef);
 		}
 		if (lambda && lambdaExpression != null) {
 			lambdaExpression.getDefVariables().forEach(this::addVarDef);

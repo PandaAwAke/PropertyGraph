@@ -52,10 +52,10 @@ class MyTest {
 //        a.p.q.r = 4;
 //    }
 
-    public void test5() {
+    public void test5(int x) {
         final ProcessGroup parentGroup = parent.get();
 
-        int x = 1;
+        x = 1;
         {
             System.out.println(x);
             int x = 2;

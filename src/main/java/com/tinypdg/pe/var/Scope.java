@@ -54,9 +54,6 @@ public class Scope {
      * @return True if it was added
      */
     public boolean addVariable(final Var var) {
-        if (hasVariableDirectly(var.getMainVariableName())) {
-            return false;
-        }
         return variables.add(var);
     }
 
@@ -65,7 +62,7 @@ public class Scope {
      * @param varName The variable name
      * @return True if this scope directly contains this var
      */
-    public boolean hasVariableDirectly(String varName) {
+    public boolean hasVariable(String varName) {
         return variables.stream()
                 .flatMap(var -> var.getVariableNameAliases().stream())
                 .anyMatch(name -> name.equals(varName));
@@ -73,17 +70,18 @@ public class Scope {
 
     /**
      * Judge whether this scope or its ancestor scopes contains the var.
+     * If so, return the scope containing it.
      * @param varName The variable name
-     * @return True if this scope or its ancestor scopes contain this var
+     * @return The scope (including our ancestor scopes) which directly contains this var, or null if failed
      */
-    public boolean hasVariable(String varName) {
-        if (hasVariableDirectly(varName)) {
-            return true;
+    public Scope searchVariable(String varName) {
+        if (hasVariable(varName)) {
+            return this;
         }
         if (parent != null) {
-            return parent.hasVariable(varName);
+            return parent.searchVariable(varName);
         }
-        return false;
+        return null;
     }
 
 }

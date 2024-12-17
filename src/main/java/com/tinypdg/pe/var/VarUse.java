@@ -1,7 +1,6 @@
 package com.tinypdg.pe.var;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Collection;
@@ -9,7 +8,6 @@ import java.util.Collection;
 /**
  * Record the information of uses of the variables in the ProgramElement.
  */
-@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @Data
 public class VarUse extends Var {
@@ -39,7 +37,7 @@ public class VarUse extends Var {
         }
     }
 
-    VarUse(Scope scope, String variableName, Type type) {
+    public VarUse(Scope scope, String variableName, Type type) {
         super(scope, variableName);
         this.type = type;
     }
@@ -47,6 +45,11 @@ public class VarUse extends Var {
     public VarUse(Scope scope, String mainVariableName, Collection<String> variableNameAliases, Type type) {
         super(scope, mainVariableName, variableNameAliases);
         this.type = type;
+    }
+
+    public VarUse(Scope scope, VarUse o) {
+        super(scope, o.mainVariableName, o.variableNameAliases);
+        this.type = o.type;
     }
 
     public VarUse(VarUse o) {
@@ -65,6 +68,15 @@ public class VarUse extends Var {
             result.type = type;
         }
         return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        VarUse varUse = (VarUse) o;
+        return type == varUse.type;
     }
 
 }

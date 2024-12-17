@@ -1,7 +1,6 @@
 package com.tinypdg.pe.var;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Collection;
@@ -9,7 +8,6 @@ import java.util.Collection;
 /**
  * Record the information of defs of the variables in the ProgramElement.
  */
-@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @Data
 public class VarDef extends Var {
@@ -21,8 +19,9 @@ public class VarDef extends Var {
      */
     public enum Type {
         // Levels:
-        // - UNKNOWN < NO_DEF < MAY_DEF < DEF < DECLARE_AND_DEF
-        UNKNOWN(0), NO_DEF(1), MAY_DEF(2), DEF(3), DECLARE_AND_DEF(4);
+        // - UNKNOWN < NO_DEF < MAY_DEF < DEF < DECLARE < DECLARE_AND_DEF
+        UNKNOWN(0), NO_DEF(1), MAY_DEF(2),
+        DEF(3), DECLARE(4), DECLARE_AND_DEF(5);
 
         Type(int level) {
             this.level = level;
@@ -39,16 +38,16 @@ public class VarDef extends Var {
         }
 
         /**
-         * Return whether this is DECLARE_AND_DEF.
+         * Return whether this is at least a DECLARE.
          * @return True if it is, otherwise return false
          */
-        public boolean isDeclareAndDef() {
-            return this.level >= DECLARE_AND_DEF.level;
+        public boolean isAtLeastDeclare() {
+            return this.level >= DECLARE.level;
         }
 
     }
 
-    VarDef(Scope scope, String variableName, Type type) {
+    public VarDef(Scope scope, String variableName, Type type) {
         super(scope, variableName);
         this.type = type;
     }
@@ -56,6 +55,11 @@ public class VarDef extends Var {
     public VarDef(Scope scope, String mainVariableName, Collection<String> variableNameAliases, Type type) {
         super(scope, mainVariableName, variableNameAliases);
         this.type = type;
+    }
+
+    public VarDef(Scope scope, VarDef o) {
+        super(scope, o.mainVariableName, o.variableNameAliases);
+        this.type = o.type;
     }
 
     public VarDef(VarDef o) {
@@ -74,6 +78,15 @@ public class VarDef extends Var {
             result.type = type;
         }
         return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        VarDef def = (VarDef) o;
+        return type == def.type;
     }
 
 }

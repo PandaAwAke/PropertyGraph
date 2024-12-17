@@ -60,7 +60,7 @@ public class VariableDeclarationInfo extends ProgramElementInfo {
 
 	@Override
 	protected void doCalcDefVariables() {
-		this.addVarDef(null, name, VarDef.Type.DECLARE_AND_DEF);
+		this.addVarDef(null, name, VarDef.Type.DECLARE);
 	}
 
 	/**

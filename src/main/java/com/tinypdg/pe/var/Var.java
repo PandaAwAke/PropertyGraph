@@ -2,7 +2,6 @@ package com.tinypdg.pe.var;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 
 import java.util.Collection;
@@ -13,9 +12,13 @@ import java.util.TreeSet;
 @ToString(exclude = "scope")
 @NoArgsConstructor
 @Getter
-@Setter
 public class Var {
 
+    /**
+     * The scope of this var.
+     * (Currently we only consider vars in methods, so if this var is a field, the scope will be null)
+     * This can change, so don't include it in hashCode()
+     */
     protected Scope scope = null;
 
     /**
@@ -30,20 +33,16 @@ public class Var {
     protected Set<String> variableNameAliases = new TreeSet<>();
 
     public Var(Scope scope, String variableName) {
-        this.scope = scope;
-        this.mainVariableName = variableName;
-        this.variableNameAliases.add(variableName);
-
-        if (scope != null) {
-            scope.addVariable(this);
-        }
+        this(scope, variableName, Set.of(variableName));
     }
 
     public Var(Scope scope, String mainVariableName, Collection<String> variableNameAliases) {
         this.scope = scope;
         this.mainVariableName = mainVariableName;
         this.variableNameAliases.addAll(variableNameAliases);
+    }
 
+    public void updateScope() {
         if (scope != null) {
             scope.addVariable(this);
         }
@@ -67,7 +66,7 @@ public class Var {
 
     @Override
     public int hashCode() {
-        return Objects.hash(scope, mainVariableName, variableNameAliases);
+        return Objects.hash(mainVariableName, variableNameAliases);
     }
 
 }
