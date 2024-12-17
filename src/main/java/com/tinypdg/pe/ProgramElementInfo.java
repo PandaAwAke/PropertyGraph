@@ -15,6 +15,7 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.Scope;
 import com.tinypdg.pe.var.VarDef;
 import com.tinypdg.pe.var.VarUse;
 import lombok.Getter;
@@ -176,7 +177,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param mainVariableName Variable name
 	 * @param type Def type, can be one of UNKNOWN, DEF, MAY_DEF
 	 */
-	protected void addVarDef(ProgramElementInfo scope, String mainVariableName,
+	protected void addVarDef(Scope scope, String mainVariableName,
 							 Collection<String> variableNameAliases, VarDef.Type type) {
 		this.defVariables.add(new VarDef(scope, mainVariableName, variableNameAliases, type));
 	}
@@ -194,7 +195,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param mainVariableName Variable name
 	 * @param type Use type, can be one of UNKNOWN, USE, MAY_USE
 	 */
-	protected void addVarUse(ProgramElementInfo scope, String mainVariableName,
+	protected void addVarUse(Scope scope, String mainVariableName,
 							 Collection<String> variableNameAliases, VarUse.Type type) {
 		this.useVariables.add(new VarUse(scope, mainVariableName, variableNameAliases, type));
 	}

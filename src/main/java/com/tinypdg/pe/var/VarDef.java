@@ -1,8 +1,8 @@
 package com.tinypdg.pe.var;
 
-import com.tinypdg.pe.ProgramElementInfo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Collection;
 
@@ -10,6 +10,7 @@ import java.util.Collection;
  * Record the information of defs of the variables in the ProgramElement.
  */
 @EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 @Data
 public class VarDef extends Var {
 
@@ -39,12 +40,12 @@ public class VarDef extends Var {
         }
     }
 
-    VarDef(ProgramElementInfo scope, String variableName, Type type) {
+    VarDef(Scope scope, String variableName, Type type) {
         super(scope, variableName);
         this.type = type;
     }
 
-    public VarDef(ProgramElementInfo scope, String mainVariableName, Collection<String> variableNameAliases, Type type) {
+    public VarDef(Scope scope, String mainVariableName, Collection<String> variableNameAliases, Type type) {
         super(scope, mainVariableName, variableNameAliases);
         this.type = type;
     }

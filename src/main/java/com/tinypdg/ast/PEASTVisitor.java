@@ -16,6 +16,7 @@
 package com.tinypdg.ast;
 
 import com.tinypdg.pe.*;
+import com.tinypdg.pe.var.ScopeManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jdt.core.dom.*;
@@ -98,6 +99,11 @@ public class PEASTVisitor extends NaiveASTFlattener {
      * This stack is safe to use when encountering some unsupported nodes.
      */
     final private PESafeStack stack = new PESafeStack();
+
+    /**
+     * The scope manager used for creating scopes (in StatementInfo).
+     */
+    final private ScopeManager scopeManager = new ScopeManager();
 
     public PEASTVisitor(final CompilationUnit root) {
         this.root = root;
@@ -204,7 +210,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo statement = new StatementInfo(ownerBlock,
+            final StatementInfo statement = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.TypeDeclaration, node, startLine, endLine);
             int maxStackSize = this.stack.push(statement);
 
@@ -358,7 +364,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo statement = new StatementInfo(ownerBlock,
+            final StatementInfo statement = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Assert, node, startLine, endLine);
             if (expression != null) {
                 statement.addExpression(expression);
@@ -912,7 +918,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
         this.stack.pop(maxStackSize, ProgramElementInfo.class);
 
         final ProgramElementInfo ownerBlock = this.stack.peek();
-        final StatementInfo statement = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.Expression,
+        final StatementInfo statement = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.Expression,
 				node, startLine, endLine);
         this.stack.push(statement);
 
@@ -929,7 +935,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo statement = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.Expression,
+            final StatementInfo statement = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.Expression,
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(statement);
 
@@ -1051,7 +1057,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo returnStatement = new StatementInfo(ownerBlock,
+            final StatementInfo returnStatement = new StatementInfo(this.scopeManager, ownerBlock,
 					StatementInfo.CATEGORY.Return, node, startLine, endLine);
             int maxStackSize = this.stack.push(returnStatement);
 
@@ -1112,7 +1118,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
 
         this.stack.pop(maxStackSize, ProgramElementInfo.class);
         final ProgramElementInfo ownerBlock = this.stack.peek();
-        final StatementInfo statement = new StatementInfo(ownerBlock,
+        final StatementInfo statement = new StatementInfo(this.scopeManager, ownerBlock,
                 StatementInfo.CATEGORY.Expression, node, startLine, endLine);
         this.stack.push(statement);
 
@@ -1169,7 +1175,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo vdStatement = new StatementInfo(ownerBlock,
+            final StatementInfo vdStatement = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.VariableDeclaration, node, startLine, endLine);
             int maxStackSize = this.stack.push(vdStatement);
 
@@ -1240,7 +1246,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo doBlock = new StatementInfo(ownerBlock,
+            final StatementInfo doBlock = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Do, node, startLine, endLine);
             int maxStackSize = this.stack.push(doBlock);
 
@@ -1292,7 +1298,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo foreachBlock = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.Foreach,
+            final StatementInfo foreachBlock = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.Foreach,
 					node, startLine, endLine);
             foreachBlock.addInitializer(parameter);
             foreachBlock.addInitializer(expression);
@@ -1316,7 +1322,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo forBlock = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.For,
+            final StatementInfo forBlock = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.For,
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(forBlock);
 
@@ -1380,7 +1386,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo ifBlock = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.If,
+            final StatementInfo ifBlock = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.If,
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(ifBlock);
 
@@ -1424,7 +1430,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo switchBlock = new StatementInfo(ownerBlock,
+            final StatementInfo switchBlock = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Switch, node, startLine, endLine);
             int maxStackSize = this.stack.push(switchBlock);
             
@@ -1461,7 +1467,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo synchronizedBlock = new StatementInfo(
+            final StatementInfo synchronizedBlock = new StatementInfo(this.scopeManager,
                     ownerBlock, StatementInfo.CATEGORY.Synchronized, node, startLine, endLine);
             int maxStackSize = this.stack.push(synchronizedBlock);
 
@@ -1494,7 +1500,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo throwStatement = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.Throw,
+            final StatementInfo throwStatement = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.Throw,
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(throwStatement);
 
@@ -1519,7 +1525,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo tryBlock = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.Try,
+            final StatementInfo tryBlock = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.Try,
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(tryBlock);
 
@@ -1559,7 +1565,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo whileBlock = new StatementInfo(ownerBlock, StatementInfo.CATEGORY.While,
+            final StatementInfo whileBlock = new StatementInfo(this.scopeManager, ownerBlock, StatementInfo.CATEGORY.While,
 					node, startLine, endLine);
             int maxStackSize = this.stack.push(whileBlock);
 
@@ -1593,7 +1599,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo switchCase = new StatementInfo(ownerBlock,
+            final StatementInfo switchCase = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Case, node, startLine, endLine);
             int maxStackSize = this.stack.push(switchCase);
 
@@ -1625,7 +1631,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo breakStatement = new StatementInfo(ownerBlock,
+            final StatementInfo breakStatement = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Break, node, startLine, endLine);
             int maxStackSize = this.stack.push(breakStatement);
 
@@ -1654,7 +1660,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo continueStatement = new StatementInfo(
+            final StatementInfo continueStatement = new StatementInfo(this.scopeManager,
                     ownerBlock, StatementInfo.CATEGORY.Continue, node, startLine, endLine);
             int maxStackSize = this.stack.push(continueStatement);
 
@@ -1693,7 +1699,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo simpleBlock = new StatementInfo(ownerBlock,
+            final StatementInfo simpleBlock = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.SimpleBlock, node, startLine, endLine);
             int maxStackSize = this.stack.push(simpleBlock);
 
@@ -1723,7 +1729,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo catchBlock = new StatementInfo(ownerBlock,
+            final StatementInfo catchBlock = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Catch, node, startLine, endLine);
             int maxStackSize = this.stack.push(catchBlock);
 
@@ -1790,7 +1796,7 @@ public class PEASTVisitor extends NaiveASTFlattener {
             final int startLine = this.getStartLineNumber(node);
             final int endLine = this.getEndLineNumber(node);
             final ProgramElementInfo ownerBlock = this.stack.peek();
-            final StatementInfo emptyStatement = new StatementInfo(ownerBlock,
+            final StatementInfo emptyStatement = new StatementInfo(this.scopeManager, ownerBlock,
                     StatementInfo.CATEGORY.Empty, node, startLine, endLine);
             this.stack.push(emptyStatement);
             emptyStatement.setText(";");

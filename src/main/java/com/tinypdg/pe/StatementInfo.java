@@ -15,6 +15,7 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.ScopeManager;
 import com.tinypdg.pe.var.VarDef;
 import com.tinypdg.pe.var.VarUse;
 import lombok.Getter;
@@ -28,6 +29,11 @@ import java.util.*;
  */
 @Getter
 public class StatementInfo extends ProgramElementInfo implements BlockInfo {
+
+    /**
+     * The scope manager used for creating scopes.
+     */
+    private final ScopeManager scopeManager;
 
     /**
      * The ownerBlock of this statement (if exists).
@@ -95,12 +101,15 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
     @Setter
     private String label;
 
-    public StatementInfo(final ProgramElementInfo ownerBlock,
+    public StatementInfo(final ScopeManager scopeManager,
+                         final ProgramElementInfo ownerBlock,
                          final CATEGORY category,
                          final ASTNode node,
                          final int startLine,
                          final int endLine) {
         super(node, startLine, endLine);
+
+        this.scopeManager = scopeManager;
 
         this.ownerBlock = ownerBlock;
         this.category = category;
@@ -222,7 +231,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
     @Override
     protected void addVarDef(VarDef varDef) {
         VarDef defWithScope = new VarDef(varDef);
-        defWithScope.setScope(this.ownerBlock);
+        defWithScope.setScope(scopeManager.getScope(this.ownerBlock));
         super.addVarDef(defWithScope);
     }
 
@@ -233,7 +242,7 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
     @Override
     protected void addVarUse(VarUse varUse) {
         VarUse useWithScope = new VarUse(varUse);
-        useWithScope.setScope(this.ownerBlock);
+        useWithScope.setScope(scopeManager.getScope(this.ownerBlock));
         super.addVarUse(useWithScope);
     }
 
