@@ -32,7 +32,7 @@ public class VarUse extends Var {
 
         /**
          * Return whether this is at least MAY_USE.
-         * @return True if is, otherwise return false
+         * @return True if it is, otherwise return false
          */
         public boolean isAtLeastMayUse() {
             return this.level >= MAY_USE.level;

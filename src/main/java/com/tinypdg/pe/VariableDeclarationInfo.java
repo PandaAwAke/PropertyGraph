@@ -15,6 +15,7 @@
 
 package com.tinypdg.pe;
 
+import com.tinypdg.pe.var.VarDef;
 import lombok.Getter;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 
@@ -55,6 +56,11 @@ public class VariableDeclarationInfo extends ProgramElementInfo {
 	public void setCategory(final CATEGORY category) {
 		assert null != category : "\"category\" is null.";
 		this.category = category;
+	}
+
+	@Override
+	protected void doCalcDefVariables() {
+		this.addVarDef(null, name, VarDef.Type.DECLARE_AND_DEF);
 	}
 
 	/**

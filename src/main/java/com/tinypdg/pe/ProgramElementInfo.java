@@ -177,9 +177,8 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param mainVariableName Variable name
 	 * @param type Def type, can be one of UNKNOWN, DEF, MAY_DEF
 	 */
-	protected void addVarDef(Scope scope, String mainVariableName,
-							 Collection<String> variableNameAliases, VarDef.Type type) {
-		this.defVariables.add(new VarDef(scope, mainVariableName, variableNameAliases, type));
+	protected void addVarDef(Scope scope, String mainVariableName, VarDef.Type type) {
+		this.defVariables.add(new VarDef(scope, mainVariableName, Set.of(mainVariableName), type));
 	}
 
 	/**
@@ -195,9 +194,8 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 * @param mainVariableName Variable name
 	 * @param type Use type, can be one of UNKNOWN, USE, MAY_USE
 	 */
-	protected void addVarUse(Scope scope, String mainVariableName,
-							 Collection<String> variableNameAliases, VarUse.Type type) {
-		this.useVariables.add(new VarUse(scope, mainVariableName, variableNameAliases, type));
+	protected void addVarUse(Scope scope, String mainVariableName, VarUse.Type type) {
+		this.useVariables.add(new VarUse(scope, mainVariableName, Set.of(mainVariableName), type));
 	}
 
 	/**

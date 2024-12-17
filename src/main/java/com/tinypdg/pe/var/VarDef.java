@@ -21,8 +21,8 @@ public class VarDef extends Var {
      */
     public enum Type {
         // Levels:
-        // - UNKNOWN < NO_DEF < MAY_DEF < DEF
-        UNKNOWN(0), NO_DEF(1), MAY_DEF(2), DEF(3);
+        // - UNKNOWN < NO_DEF < MAY_DEF < DEF < DECLARE_AND_DEF
+        UNKNOWN(0), NO_DEF(1), MAY_DEF(2), DEF(3), DECLARE_AND_DEF(4);
 
         Type(int level) {
             this.level = level;
@@ -32,12 +32,20 @@ public class VarDef extends Var {
 
         /**
          * Return whether this is at least MAY_DEF.
-         *
-         * @return True if is, otherwise return false
+         * @return True if it is, otherwise return false
          */
         public boolean isAtLeastMayDef() {
             return this.level >= MAY_DEF.level;
         }
+
+        /**
+         * Return whether this is DECLARE_AND_DEF.
+         * @return True if it is, otherwise return false
+         */
+        public boolean isDeclareAndDef() {
+            return this.level >= DECLARE_AND_DEF.level;
+        }
+
     }
 
     VarDef(Scope scope, String variableName, Type type) {
@@ -57,7 +65,6 @@ public class VarDef extends Var {
 
     /**
      * Return a promoted var def with at least the specified type.
-     *
      * @param type Type
      * @return Cloned var def with at least the specified type
      */

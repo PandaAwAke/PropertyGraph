@@ -97,6 +97,9 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 		for (final StatementInfo statement : this.statements) {
 			statement.getDefVariables().forEach(this::addVarDef);
 		}
+		for (final VariableDeclarationInfo parameter : this.parameters) {
+			parameter.getDefVariables().forEach(this::addVarDef);
+		}
 		if (lambda && lambdaExpression != null) {
 			lambdaExpression.getDefVariables().forEach(this::addVarDef);
 		}

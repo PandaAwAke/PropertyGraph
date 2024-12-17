@@ -182,7 +182,7 @@ public class ExpressionInfo extends ProgramElementInfo {
      * - "a[0]" -> {"a": ["a"]} (We don't care about the index) <br>
      * - "a.x" -> {"a.x": ["a.x"], "a": ["a"]} (Although "a" should also be considered, but it is not an alias) <br>
      * - "foo().bar" -> {} <br>
-     * - "this.source" -> {"source": ["source", "this.source"]}
+     * - "this.source" -> {"this.source": ["this.source", "source"]}
      * @param pe ProgramElementInfo
      * @return The name aliases map (unmodifiable) of the variable if pe is a variable. <br>
      *      The key is the main name of the variable, and the value is the aliases set (including the main name)
@@ -223,8 +223,9 @@ public class ExpressionInfo extends ProgramElementInfo {
                                 baseText, Set.of(baseText));
                     }
                     if (baseCategory.equals(CATEGORY.This)) {
-                        // "this.source" -> {"source": ["source" (main), "this.source"]}
-                        String fieldText = expr.getExpressions().get(1).getText();
+                        // "this.source" -> {"this.source": ["this.source", "source"]}
+//                        String fieldText = expr.getExpressions().get(1).getText();
+                        String fieldText = expr.getText();
                         yield Map.of(fieldText, Set.of(fieldText, exprText));
                     }
                 }
@@ -279,7 +280,7 @@ public class ExpressionInfo extends ProgramElementInfo {
                     Map<String, Set<String>> variableNameAliasesMap = getVariableNameAliases(left);
                     if (!variableNameAliasesMap.isEmpty()) {
                         variableNameAliasesMap.forEach((variableName, variableNameAliases) -> this.addVarDef(
-                                new VarDef(null, variableName, variableNameAliases, VarDef.Type.DEF)
+                                new VarDef(null, variableName, variableNameAliases, VarDef.Type.DECLARE_AND_DEF)
                         ));
                     } else {
                         left.getDefVariables().forEach(this::addVarDef);
@@ -393,7 +394,7 @@ public class ExpressionInfo extends ProgramElementInfo {
                 }
             }
             case SimpleName -> {
-                this.addVarUse(null, this.getText(), Set.of(this.getText()), VarUse.Type.MAY_USE);
+                this.addVarUse(null, this.getText(), VarUse.Type.MAY_USE);
             }
             case MethodInvocation -> {
                 // MethodInvocation:
