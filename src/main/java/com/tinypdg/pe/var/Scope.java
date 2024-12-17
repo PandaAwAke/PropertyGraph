@@ -58,28 +58,29 @@ public class Scope {
     }
 
     /**
-     * Judge whether this scope contains the var.
+     * Judge whether this scope contains the var def.
      * @param varName The variable name
      * @return True if this scope directly contains this var
      */
-    public boolean hasVariable(String varName) {
+    public boolean hasVariableDef(String varName) {
         return variables.stream()
+                .filter(var -> var instanceof VarDef)
                 .flatMap(var -> var.getVariableNameAliases().stream())
                 .anyMatch(name -> name.equals(varName));
     }
 
     /**
-     * Judge whether this scope or its ancestor scopes contains the var.
+     * Judge whether this scope or its ancestor scopes contains the var def.
      * If so, return the scope containing it.
      * @param varName The variable name
      * @return The scope (including our ancestor scopes) which directly contains this var, or null if failed
      */
-    public Scope searchVariable(String varName) {
-        if (hasVariable(varName)) {
+    public Scope searchVariableDef(String varName) {
+        if (hasVariableDef(varName)) {
             return this;
         }
         if (parent != null) {
-            return parent.searchVariable(varName);
+            return parent.searchVariableDef(varName);
         }
         return null;
     }

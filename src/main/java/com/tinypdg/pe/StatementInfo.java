@@ -231,43 +231,51 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     @Override
     protected void addVarDef(VarDef varDef) {
-        VarDef defWithScope;
+        VarDef defWithScope = new VarDef(varDef);
         Scope ourScope = scopeManager.getScope(this.ownerBlock);
 
-        if (varDef.getType().isAtLeastDeclare()) {
-            // Case 1: it is a DECLARE
-            if (varDef.getScope() == null) {
-                // It was not declared in any scope
+        if (varDef.getScope() == null) {
+            // This def does not have a scope yet (it may be set by recursively AST traverse)
+            // Try to create one for it
+
+            // Case 1: it is a DECLARE, create it in ourScope
+            if (varDef.getType().isAtLeastDeclare()) {
                 defWithScope = new VarDef(ourScope, varDef);
             } else {
-                defWithScope = new VarDef(varDef);
-            }
-        } else {
-            // Case 2: it is not a DECLARE
-            Scope matchedScope = ourScope.searchVariable(varDef.getMainVariableName());
-            if (matchedScope != null) {
-                // Found a matched scope (including myself), set it
-                defWithScope = new VarDef(matchedScope, varDef);
-            } else {
-                // This varDef was not declared
-                // It is most likely a this.xxx def, set scope to null
-                defWithScope = new VarDef(null, varDef);
+                // Case 2: this def is not a DECLARE, try to find it in our scope
+                Scope matchedScope = ourScope.searchVariableDef(varDef.getMainVariableName());
+                if (matchedScope != null) {
+                    // Found a matched scope (including myself), set it
+                    defWithScope = new VarDef(matchedScope, varDef);
+                } else {
+                    // This var was not declared
+                    // It is most likely a this.xxx def, set scope to null
+                    defWithScope = new VarDef(null, varDef);
+                }
             }
         }
 
-        if (defWithScope.getScope() == null) {
-            if (TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
-                // Actually the var is a field of "this", let's change its main name and aliases
-                String mainVariableName = defWithScope.getMainVariableName();
-                if (!mainVariableName.startsWith("this.")) {
-                    String mainVariableNameWithThis = "this." + mainVariableName;
-                    defWithScope = new VarDef(defWithScope.getScope(), mainVariableNameWithThis,
-                            Set.of(mainVariableName, mainVariableNameWithThis), defWithScope.getType());
-                }
+        if (defWithScope.getScope() == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+            // Actually the var is a field of "this", let's change its main name and aliases
+            String mainVariableName = defWithScope.getMainVariableName();
+            if (!mainVariableName.startsWith("this.")) {
+                String mainVariableNameWithThis = "this." + mainVariableName;
+                defWithScope = new VarDef(defWithScope.getScope(), mainVariableNameWithThis,
+                        Set.of(mainVariableName, mainVariableNameWithThis), defWithScope.getType());
             }
-        } else {
+        }
+
+        if (defWithScope.getRelevantStmt() == null) {
+            defWithScope.setRelevantStmt(this);
+        }
+
+        // Make sure you have set everything done when updateScope() and addVarDef()
+        // Otherwise the HashSet will be wrong
+
+        if (defWithScope.getScope() != null) {
             defWithScope.updateScope();
         }
+
         super.addVarDef(defWithScope);
     }
 
@@ -277,32 +285,44 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     @Override
     protected void addVarUse(VarUse varUse) {
-        VarUse useWithScope;
+        VarUse useWithScope = new VarUse(varUse);
         Scope ourScope = scopeManager.getScope(this.ownerBlock);
 
-        Scope matchedScope = ourScope.searchVariable(varUse.getMainVariableName());
-        if (matchedScope != null) {
-            // Found a matched scope (including myself), set it
-            useWithScope = new VarUse(matchedScope, varUse);
-        } else {
-            // This varDef was not declared
-            // It is most likely a this.xxx def, set scope to null
-            useWithScope = new VarUse(null, varUse);
+        if (varUse.getScope() == null) {
+            // This use does not have a scope yet (it may be set by recursively AST traverse)
+            // Try to create one for it
+            Scope matchedScope = ourScope.searchVariableDef(varUse.getMainVariableName());
+            if (matchedScope != null) {
+                // Found a matched scope (including myself), set it
+                useWithScope = new VarUse(matchedScope, varUse);
+            } else {
+                // This var was not declared
+                // It is most likely a this.xxx use, set scope to null
+                useWithScope = new VarUse(null, varUse);
+            }
         }
 
-        if (useWithScope.getScope() == null) {
-            if (TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
-                // Actually the var is a field of "this", let's change its main name and aliases
-                String mainVariableName = useWithScope.getMainVariableName();
-                if (!mainVariableName.startsWith("this.")) {
-                    String mainVariableNameWithThis = "this." + mainVariableName;
-                    useWithScope = new VarUse(useWithScope.getScope(), mainVariableNameWithThis,
-                            Set.of(mainVariableName, mainVariableNameWithThis), useWithScope.getType());
-                }
+        if (useWithScope.getScope() == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+            // Actually the var is a field of "this", let's change its main name and aliases
+            String mainVariableName = useWithScope.getMainVariableName();
+            if (!mainVariableName.startsWith("this.")) {
+                String mainVariableNameWithThis = "this." + mainVariableName;
+                useWithScope = new VarUse(useWithScope.getScope(), mainVariableNameWithThis,
+                        Set.of(mainVariableName, mainVariableNameWithThis), useWithScope.getType());
             }
-        } else {
+        }
+
+        if (useWithScope.getRelevantStmt() == null) {
+            useWithScope.setRelevantStmt(this);
+        }
+
+        // Make sure you have set everything done when updateScope() and addVarDef()
+        // Otherwise the HashSet will be wrong
+
+        if (useWithScope.getScope() != null) {
             useWithScope.updateScope();
         }
+
         super.addVarUse(useWithScope);
     }
 

@@ -1,18 +1,27 @@
 package com.tinypdg.pe.var;
 
+import com.tinypdg.pe.StatementInfo;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * Record the information of uses of the variables in the ProgramElement.
  */
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 @Data
 public class VarUse extends Var {
 
     protected Type type = Type.UNKNOWN;
+
+    /**
+     * The relevant stmt of this use. Set by StatementInfo.
+     */
+    protected StatementInfo relevantStmt = null;
 
     /**
      * Use types.
@@ -37,24 +46,27 @@ public class VarUse extends Var {
         }
     }
 
-    public VarUse(Scope scope, String variableName, Type type) {
-        super(scope, variableName);
-        this.type = type;
+    public VarUse(Scope scope, String variableName, VarUse.Type type) {
+        this(scope, variableName, Set.of(variableName), type, null);
     }
 
-    public VarUse(Scope scope, String mainVariableName, Collection<String> variableNameAliases, Type type) {
+    public VarUse(Scope scope, String mainVariableName, Collection<String> variableNameAliases, VarUse.Type type) {
+        this(scope, mainVariableName, variableNameAliases, type, null);
+    }
+    
+    public VarUse(Scope scope, String mainVariableName, Collection<String> variableNameAliases,
+                  VarUse.Type type, StatementInfo relevantStmt) {
         super(scope, mainVariableName, variableNameAliases);
         this.type = type;
+        this.relevantStmt = relevantStmt;
     }
 
     public VarUse(Scope scope, VarUse o) {
-        super(scope, o.mainVariableName, o.variableNameAliases);
-        this.type = o.type;
+        this(scope, o.mainVariableName, o.variableNameAliases, o.type, o.relevantStmt);
     }
 
     public VarUse(VarUse o) {
-        super(o.scope, o.mainVariableName, o.variableNameAliases);
-        this.type = o.type;
+        this(o.scope, o.mainVariableName, o.variableNameAliases, o.type, o.relevantStmt);
     }
 
     /**
@@ -68,15 +80,6 @@ public class VarUse extends Var {
             result.type = type;
         }
         return result;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        VarUse varUse = (VarUse) o;
-        return type == varUse.type;
     }
 
 }
