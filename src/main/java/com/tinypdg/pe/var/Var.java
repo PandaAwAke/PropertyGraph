@@ -49,6 +49,14 @@ public class Var {
         }
     }
 
+    /**
+     * Judge whether a variable name matches this Var.
+     * @return True if the name matches this var.
+     */
+    public boolean matchName(String name) {
+        return variableNameAliases.contains(name);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

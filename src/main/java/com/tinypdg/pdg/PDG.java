@@ -364,8 +364,8 @@ public class PDG implements Comparable<PDG> {
 
         // The variable was defined in "fromPDGNode"
         // If "cfgNode" uses the variable, add the edge
-        Optional<VarUse> matchedUse = cfgNode.core.getUseVariables().stream()
-                .filter(use -> use.getVariableNameAliases().contains(variable))
+        Optional<VarUse> matchedUse = cfgNode.core.getUseVariablesAtLeastMayUse().stream()
+                .filter(use -> use.matchName(variable))
                 .findFirst();
 
         boolean shouldAddEdge = false;
@@ -398,7 +398,7 @@ public class PDG implements Comparable<PDG> {
         // Find whether this variable was defined in this PE
         // If so, try to stop or continue the propagation...
         Optional<VarDef> matchedDef = cfgNode.core.getDefVariablesAtLeastMayDef().stream()
-                .filter(def -> def.getVariableNameAliases().contains(variable))
+                .filter(def -> def.matchName(variable))
                 .findFirst();
 
         boolean shouldPropagate = true;
