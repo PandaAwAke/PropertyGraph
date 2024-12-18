@@ -81,6 +81,14 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	 */
 	protected static boolean TREAT_NON_LOCAL_VARIABLE_AS_FIELD = true;
 
+
+	/**
+	 * Whether we should treat uppercase started variables as field.
+	 * This will take effect only when TREAT_NON_LOCAL_VARIABLE_AS_FIELD was enabled.
+	 */
+	protected static boolean TREAT_FIELD_EXCLUDE_UPPERCASE = true;
+
+
 	public ProgramElementInfo(final Object node, final int startLine, final int endLine) {
 		this.node = node;
 		this.startLine = startLine;

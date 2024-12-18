@@ -258,11 +258,16 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         if (defWithScope.getScope() == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
             // Actually the var is a field of "this", let's change its main name and aliases
             String mainVariableName = defWithScope.getMainVariableName();
-            if (!mainVariableName.startsWith("this.")) {
-                String mainVariableNameWithThis = "this." + mainVariableName;
-                defWithScope = new VarDef(defWithScope.getScope(), mainVariableNameWithThis,
-                        Set.of(mainVariableName, mainVariableNameWithThis), defWithScope.getType());
+            if (mainVariableName != null && !mainVariableName.isEmpty()) {
+                if (!TREAT_FIELD_EXCLUDE_UPPERCASE || !Character.isUpperCase(mainVariableName.charAt(0))) {
+                    if (!mainVariableName.startsWith("this.")) {
+                        String mainVariableNameWithThis = "this." + mainVariableName;
+                        defWithScope = new VarDef(defWithScope.getScope(), mainVariableNameWithThis,
+                                Set.of(mainVariableName, mainVariableNameWithThis), defWithScope.getType());
+                    }
+                }
             }
+
         }
 
         if (defWithScope.getRelevantStmt() == null) {
@@ -305,10 +310,14 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
         if (useWithScope.getScope() == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
             // Actually the var is a field of "this", let's change its main name and aliases
             String mainVariableName = useWithScope.getMainVariableName();
-            if (!mainVariableName.startsWith("this.")) {
-                String mainVariableNameWithThis = "this." + mainVariableName;
-                useWithScope = new VarUse(useWithScope.getScope(), mainVariableNameWithThis,
-                        Set.of(mainVariableName, mainVariableNameWithThis), useWithScope.getType());
+            if (mainVariableName != null && !mainVariableName.isEmpty()) {
+                if (!TREAT_FIELD_EXCLUDE_UPPERCASE || !Character.isUpperCase(mainVariableName.charAt(0))) {
+                    if (!mainVariableName.startsWith("this.")) {
+                        String mainVariableNameWithThis = "this." + mainVariableName;
+                        useWithScope = new VarUse(useWithScope.getScope(), mainVariableNameWithThis,
+                                Set.of(mainVariableName, mainVariableNameWithThis), useWithScope.getType());
+                    }
+                }
             }
         }
 
