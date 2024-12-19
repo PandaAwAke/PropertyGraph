@@ -20,6 +20,7 @@ import com.tinypdg.pe.var.VarDef;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -54,10 +55,18 @@ public class MethodInfo extends ProgramElementInfo implements BlockInfo {
 	 */
 	final private List<VariableDeclarationInfo> parameters = new ArrayList<>();
 
+	public List<VariableDeclarationInfo> getParameters() {
+		return Collections.unmodifiableList(parameters);
+	}
+
 	/**
 	 * The statements inside the block.
 	 */
 	final private List<StatementInfo> statements = new ArrayList<>();
+
+	public List<StatementInfo> getStatements() {
+		return Collections.unmodifiableList(statements);
+	}
 
 	public MethodInfo(final ScopeManager scopeManager, final boolean lambda, final String name,
 					  final Object node, final int startLine, final int endLine) {

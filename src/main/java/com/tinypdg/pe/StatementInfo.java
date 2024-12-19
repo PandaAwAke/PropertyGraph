@@ -58,11 +58,19 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     private final List<ProgramElementInfo> expressions = new ArrayList<>();
 
+    public List<ProgramElementInfo> getExpressions() {
+        return Collections.unmodifiableList(expressions);
+    }
+
     /**
      * Used for "For" and "Foreach" statement.
      * Records the initializer expressions in the "for" loop.
      */
     private final List<ProgramElementInfo> initializers = new ArrayList<>();
+
+    public List<ProgramElementInfo> getInitializers() {
+        return Collections.unmodifiableList(initializers);
+    }
 
     /**
      * Used for "For" and "Foreach" statement.
@@ -70,6 +78,9 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     private final List<ProgramElementInfo> updaters = new ArrayList<>();
 
+    public List<ProgramElementInfo> getUpdaters() {
+        return Collections.unmodifiableList(updaters);
+    }
 
     /**
      * All children statements in this statement.
@@ -77,17 +88,29 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     private final List<StatementInfo> statements = new ArrayList<>();
 
+    public List<StatementInfo> getStatements() {
+        return Collections.unmodifiableList(statements);
+    }
+
     /**
      * Used for "If" statement.
      * Records the statements in "else" block.
      */
     private final List<StatementInfo> elseStatements = new ArrayList<>();
 
+    public List<StatementInfo> getElseStatements() {
+        return Collections.unmodifiableList(elseStatements);
+    }
+
     /**
      * Used for "Try" statement.
      * Records the "catch" blocks.
      */
     private final List<StatementInfo> catchStatements = new ArrayList<>();
+
+    public List<StatementInfo> getCatchStatements() {
+        return Collections.unmodifiableList(catchStatements);
+    }
 
     /**
      * Used for "Try" statement.
@@ -231,7 +254,12 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     @Override
     protected void addVarDef(VarDef varDef) {
-        VarDef defWithScope = new VarDef(varDef);
+        Scope defScope = varDef.getScope();
+        String defMainVariableName = varDef.getMainVariableName();
+        Set<String> defVariableNameAliases = varDef.getVariableNameAliases();
+        VarDef.Type defType = varDef.getType();
+        StatementInfo defRelevantStmt = varDef.getRelevantStmt();
+
         Scope ourScope = scopeManager.getScope(this.ownerBlock);
 
         if (varDef.getScope() == null) {
@@ -240,48 +268,46 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
 
             // Case 1: it is a DECLARE, create it in ourScope
             if (varDef.getType().isAtLeastDeclare()) {
-                defWithScope = new VarDef(ourScope, varDef);
+                defScope = ourScope;
             } else {
                 // Case 2: this def is not a DECLARE, try to find it in our scope
                 Scope matchedScope = ourScope.searchVariableDef(varDef.getMainVariableName());
                 if (matchedScope != null) {
                     // Found a matched scope (including myself), set it
-                    defWithScope = new VarDef(matchedScope, varDef);
+                    defScope = matchedScope;
                 } else {
                     // This var was not declared
                     // It is most likely a this.xxx def, set scope to null
-                    defWithScope = new VarDef(null, varDef);
+                    defScope = null;
                 }
             }
         }
 
-        if (defWithScope.getScope() == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+        if (defScope == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
             // Actually the var is a field of "this", let's change its main name and aliases
-            String mainVariableName = defWithScope.getMainVariableName();
-            if (mainVariableName != null && !mainVariableName.isEmpty()) {
-                if (!TREAT_FIELD_EXCLUDE_UPPERCASE || !Character.isUpperCase(mainVariableName.charAt(0))) {
-                    if (!mainVariableName.startsWith("this.")) {
-                        String mainVariableNameWithThis = "this." + mainVariableName;
-                        defWithScope = new VarDef(defWithScope.getScope(), mainVariableNameWithThis,
-                                Set.of(mainVariableName, mainVariableNameWithThis), defWithScope.getType());
+            if (defMainVariableName != null && !defMainVariableName.isEmpty()) {
+                if (!TREAT_FIELD_EXCLUDE_UPPERCASE || !Character.isUpperCase(defMainVariableName.charAt(0))) {
+                    if (!defMainVariableName.startsWith("this.")) {
+                        String defMainVariableNameWithThis = "this." + defMainVariableName;
+                        defVariableNameAliases = Set.of(defMainVariableName, defMainVariableNameWithThis);
+                        defMainVariableName = defMainVariableNameWithThis;
                     }
                 }
             }
 
         }
 
-        if (defWithScope.getRelevantStmt() == null) {
-            defWithScope.setRelevantStmt(this);
+        if (defRelevantStmt == null) {
+            defRelevantStmt = this;
         }
 
-        // Make sure you have set everything done when updateScope() and addVarDef()
-        // Otherwise the HashSet will be wrong
-
-        if (defWithScope.getScope() != null) {
-            defWithScope.updateScope();
+        VarDef def = new VarDef(defScope, defMainVariableName, defVariableNameAliases, defType, defRelevantStmt);
+        
+        if (defScope != null) {
+            def.updateScope();
         }
 
-        super.addVarDef(defWithScope);
+        super.addVarDef(def);
     }
 
     /**
@@ -290,7 +316,12 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
      */
     @Override
     protected void addVarUse(VarUse varUse) {
-        VarUse useWithScope = new VarUse(varUse);
+        Scope useScope = varUse.getScope();
+        String useMainVariableName = varUse.getMainVariableName();
+        Set<String> useVariableNameAliases = varUse.getVariableNameAliases();
+        VarUse.Type useType = varUse.getType();
+        StatementInfo useRelevantStmt = varUse.getRelevantStmt();
+
         Scope ourScope = scopeManager.getScope(this.ownerBlock);
 
         if (varUse.getScope() == null) {
@@ -299,40 +330,38 @@ public class StatementInfo extends ProgramElementInfo implements BlockInfo {
             Scope matchedScope = ourScope.searchVariableDef(varUse.getMainVariableName());
             if (matchedScope != null) {
                 // Found a matched scope (including myself), set it
-                useWithScope = new VarUse(matchedScope, varUse);
+                useScope = matchedScope;
             } else {
                 // This var was not declared
                 // It is most likely a this.xxx use, set scope to null
-                useWithScope = new VarUse(null, varUse);
+                useScope = null;
             }
         }
 
-        if (useWithScope.getScope() == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
+        if (useScope == null && TREAT_NON_LOCAL_VARIABLE_AS_FIELD) {
             // Actually the var is a field of "this", let's change its main name and aliases
-            String mainVariableName = useWithScope.getMainVariableName();
-            if (mainVariableName != null && !mainVariableName.isEmpty()) {
-                if (!TREAT_FIELD_EXCLUDE_UPPERCASE || !Character.isUpperCase(mainVariableName.charAt(0))) {
-                    if (!mainVariableName.startsWith("this.")) {
-                        String mainVariableNameWithThis = "this." + mainVariableName;
-                        useWithScope = new VarUse(useWithScope.getScope(), mainVariableNameWithThis,
-                                Set.of(mainVariableName, mainVariableNameWithThis), useWithScope.getType());
+            if (useMainVariableName != null && !useMainVariableName.isEmpty()) {
+                if (!TREAT_FIELD_EXCLUDE_UPPERCASE || !Character.isUpperCase(useMainVariableName.charAt(0))) {
+                    if (!useMainVariableName.startsWith("this.")) {
+                        String useMainVariableNameWithThis = "this." + useMainVariableName;
+                        useVariableNameAliases = Set.of(useMainVariableName, useMainVariableNameWithThis);
+                        useMainVariableName = useMainVariableNameWithThis;
                     }
                 }
             }
         }
 
-        if (useWithScope.getRelevantStmt() == null) {
-            useWithScope.setRelevantStmt(this);
+        if (useRelevantStmt == null) {
+            useRelevantStmt = this;
         }
 
-        // Make sure you have set everything done when updateScope() and addVarDef()
-        // Otherwise the HashSet will be wrong
+        VarUse use = new VarUse(useScope, useMainVariableName, useVariableNameAliases, useType, useRelevantStmt);
 
-        if (useWithScope.getScope() != null) {
-            useWithScope.updateScope();
+        if (useScope != null) {
+            use.updateScope();
         }
 
-        super.addVarUse(useWithScope);
+        super.addVarUse(use);
     }
 
     @Override

@@ -16,12 +16,12 @@ import java.util.Set;
 @Data
 public class VarUse extends Var {
 
-    protected Type type = Type.UNKNOWN;
+    protected final Type type;
 
     /**
      * The relevant stmt of this use. Set by StatementInfo.
      */
-    protected StatementInfo relevantStmt = null;
+    protected final StatementInfo relevantStmt;
 
     /**
      * Use types.
@@ -75,11 +75,10 @@ public class VarUse extends Var {
      * @return Cloned var use with at least the specified type
      */
     public VarUse promote(Type type) {
-        VarUse result = new VarUse(this);
         if (this.type.level < type.level) {
-            result.type = type;
+            return new VarUse(this.scope, this.mainVariableName, this.variableNameAliases, type, this.relevantStmt);
         }
-        return result;
+        return new VarUse(this);
     }
 
 }

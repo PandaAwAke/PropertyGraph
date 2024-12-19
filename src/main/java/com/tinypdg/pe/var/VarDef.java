@@ -16,12 +16,12 @@ import java.util.Set;
 @Data
 public class VarDef extends Var {
 
-    protected Type type = Type.UNKNOWN;
+    protected final Type type;
 
     /**
      * The relevant stmt of this def. Set by StatementInfo.
      */
-    protected StatementInfo relevantStmt = null;
+    protected final StatementInfo relevantStmt;
 
     /**
      * Def types.
@@ -85,11 +85,10 @@ public class VarDef extends Var {
      * @return Cloned var def with at least the specified type
      */
     public VarDef promote(Type type) {
-        VarDef result = new VarDef(this);
         if (this.type.level < type.level) {
-            result.type = type;
+            return new VarDef(this.scope, this.mainVariableName, this.variableNameAliases, type, this.relevantStmt);
         }
-        return result;
+        return new VarDef(this);
     }
 
 }

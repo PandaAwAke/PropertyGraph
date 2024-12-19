@@ -50,6 +50,10 @@ public class ExpressionInfo extends ProgramElementInfo {
      */
     private final List<ProgramElementInfo> expressions = new ArrayList<>();
 
+    public List<ProgramElementInfo> getExpressions() {
+        return Collections.unmodifiableList(expressions);
+    }
+
     /**
      * Used for ClassInstanceCreation.
      * @see org.eclipse.jdt.core.dom.ClassInstanceCreation

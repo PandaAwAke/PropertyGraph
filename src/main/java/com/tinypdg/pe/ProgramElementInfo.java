@@ -147,7 +147,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 			defVariables = new HashSet<>();
 			doCalcDefVariables();
 		}
-		return defVariables;
+		return Collections.unmodifiableSet(defVariables);
 	}
 
 	/**
@@ -158,7 +158,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	public Set<VarDef> getDefVariablesAtLeastMayDef() {
 		return getDefVariables().stream()
 				.filter(def -> def.getType().isAtLeastMayDef())
-				.collect(Collectors.toCollection(HashSet::new));
+				.collect(Collectors.toSet());
 	}
 
 	/**
@@ -171,7 +171,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 			useVariables = new HashSet<>();
 			doCalcUseVariables();
 		}
-		return useVariables;
+		return Collections.unmodifiableSet(useVariables);
 	}
 
 	/**
@@ -182,7 +182,7 @@ abstract public class ProgramElementInfo implements Comparable<ProgramElementInf
 	public Set<VarUse> getUseVariablesAtLeastMayUse() {
 		return getUseVariables().stream()
 				.filter(use -> use.getType().isAtLeastMayUse())
-				.collect(Collectors.toCollection(HashSet::new));
+				.collect(Collectors.toSet());
 	}
 
 	/**

@@ -4,10 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 @ToString(exclude = "scope")
 @NoArgsConstructor
@@ -40,6 +37,10 @@ public class Var {
         this.scope = scope;
         this.mainVariableName = mainVariableName;
         this.variableNameAliases.addAll(variableNameAliases);
+    }
+
+    public Set<String> getVariableNameAliases() {
+        return Collections.unmodifiableSet(variableNameAliases);
     }
 
     public void updateScope() {
